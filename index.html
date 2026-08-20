@@ -9,9 +9,14 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f4f1;color:#1a1a1a;font-size:13px}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f4f1;color:#1a1a1a;font-size:13px;display:flex;flex-direction:column}
+    /* FIXED HEADER CONTAINER */
+    #fixed-header{position:fixed;top:0;left:0;right:0;z-index:100}
+    /* SCROLL AREA */
+    #scroll-area{position:fixed;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:auto;background:#f5f4f1}
     /* NAV */
-    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333;position:sticky;top:0;z-index:100}
+    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333}
     nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s}
     nav a:hover,nav a.active{background:#fff;color:#111}
     /* HEADER */
@@ -42,9 +47,9 @@
     .btn-dark{background:#1a1a1a;color:#fff}.btn-dark:hover{background:#333}
     .btn-outline{background:transparent;border:1px solid #ccc;color:#555}.btn-outline:hover{border-color:#1a1a1a;color:#1a1a1a}
     /* TABLE WRAPPER */
-    .tbl-wrap{overflow-x:auto;margin:1rem 1.5rem 2rem}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-    thead{position:sticky;top:40px;z-index:10;background:#1a1a1a;color:#fff}
+    .tbl-wrap{margin:0 1.5rem 2rem;min-width:900px}
+    table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    thead{position:sticky;top:0;z-index:10;background:#1a1a1a;color:#fff}
     th{padding:.75rem .8rem;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;cursor:pointer;user-select:none}
     th:hover{background:#333}
     td{padding:.6rem .8rem;border-bottom:1px solid #f0f0f0;vertical-align:middle}
@@ -106,77 +111,91 @@
   <h2>Connexion à Firebase…</h2>
 </div>
 
-<nav>
-  <a href="agences.html">📋 Annuaire agences</a>
-  <a href="suivi_firebase.html" class="active">📊 Tableau de suivi</a>
-</nav>
+<div id="fixed-header">
+  <nav>
+    <a href="agences.html">📋 Annuaire agences</a>
+    <a href="suivi_firebase.html" class="active">📊 Tableau de suivi</a>
+  </nav>
 
-<div class="hdr">
-  <h1>Tableau de suivi — Prospection Stage</h1>
-  <p>Données synchronisées en temps réel via Firebase — accessibles depuis tous vos appareils</p>
-</div>
+  <div class="hdr">
+    <h1>Tableau de suivi — Prospection Stage</h1>
+    <p>Données synchronisées en temps réel via Firebase — accessibles depuis tous vos appareils</p>
+  </div>
 
-<!-- ALERT RELANCES -->
-<div class="alert" id="alert-bar">
-  ⚠️ <strong id="alert-msg"></strong> — pensez à les relancer aujourd'hui !
-</div>
+  <!-- ALERT RELANCES -->
+  <div class="alert" id="alert-bar">
+    ⚠️ <strong id="alert-msg"></strong> — pensez à les relancer aujourd'hui !
+  </div>
 
-<!-- STATS / FILTERS PILLS -->
-<div class="stats-bar">
-  <span style="font-size:.72rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Filtrer :</span>
-  <div class="stat-pill active" data-filter="all"><span class="num" id="cnt-all">71</span>&nbsp;Toutes</div>
-  <div class="stat-pill" data-filter="nc"><span class="num" id="cnt-nc">—</span>&nbsp;Non contacté</div>
-  <div class="stat-pill" data-filter="em"><span class="num" id="cnt-em">—</span>&nbsp;Envoyé</div>
-  <div class="stat-pill" data-filter="r1"><span class="num" id="cnt-r1">—</span>&nbsp;Relance 1</div>
-  <div class="stat-pill" data-filter="r2"><span class="num" id="cnt-r2">—</span>&nbsp;Relance 2</div>
-  <div class="stat-pill" data-filter="rp"><span class="num" id="cnt-rp">—</span>&nbsp;Réponse</div>
-  <div class="stat-pill" data-filter="en"><span class="num" id="cnt-en">—</span>&nbsp;Entretien</div>
-  <div class="stat-pill" data-filter="ok"><span class="num" id="cnt-ok">—</span>&nbsp;Stage ✓</div>
-  <div class="stat-pill" data-filter="prio"><span class="num" id="cnt-prio">—</span>&nbsp;⭐ Priorité</div>
-  <span id="save-ind">✓ Sauvegardé</span>
-  <span id="sync-ind">🔄 Firebase</span>
-</div>
+  <!-- STATS / FILTERS PILLS -->
+  <div class="stats-bar">
+    <span style="font-size:.72rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Filtrer :</span>
+    <div class="stat-pill active" data-filter="all"><span class="num" id="cnt-all">71</span>&nbsp;Toutes</div>
+    <div class="stat-pill" data-filter="nc"><span class="num" id="cnt-nc">—</span>&nbsp;Non contacté</div>
+    <div class="stat-pill" data-filter="em"><span class="num" id="cnt-em">—</span>&nbsp;Envoyé</div>
+    <div class="stat-pill" data-filter="r1"><span class="num" id="cnt-r1">—</span>&nbsp;Relance 1</div>
+    <div class="stat-pill" data-filter="r2"><span class="num" id="cnt-r2">—</span>&nbsp;Relance 2</div>
+    <div class="stat-pill" data-filter="rp"><span class="num" id="cnt-rp">—</span>&nbsp;Réponse</div>
+    <div class="stat-pill" data-filter="en"><span class="num" id="cnt-en">—</span>&nbsp;Entretien</div>
+    <div class="stat-pill" data-filter="ok"><span class="num" id="cnt-ok">—</span>&nbsp;Stage ✓</div>
+    <div class="stat-pill" data-filter="prio"><span class="num" id="cnt-prio">—</span>&nbsp;⭐ Priorité</div>
+    <span id="save-ind">✓ Sauvegardé</span>
+    <span id="sync-ind">🔄 Firebase</span>
+  </div>
 
-<!-- CONTROLS -->
-<div class="controls">
-  <label class="ctrl-lbl">Zone</label>
-  <select id="zone-filter">
-    <option value="">Toutes</option>
-    <option value="Lyon">Lyon</option>
-    <option value="Alpes">Alpes</option>
-    <option value="Sud">Sud</option>
-  </select>
-  <label class="ctrl-lbl">Recherche</label>
-  <input type="text" id="search" placeholder="Nom, ville, site..."/>
-  <button class="btn btn-dark" onclick="resetAllFilters()">↺ Tout afficher</button>
-  <button class="btn btn-outline" onclick="setRelanceDates()">📅 Auto-relances</button>
-  <button class="btn btn-outline" id="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
-</div>
+  <!-- CONTROLS -->
+  <div class="controls">
+    <label class="ctrl-lbl">Zone</label>
+    <select id="zone-filter">
+      <option value="">Toutes</option>
+      <option value="Lyon">Lyon</option>
+      <option value="Alpes">Alpes</option>
+      <option value="Sud">Sud</option>
+    </select>
+    <label class="ctrl-lbl">Recherche</label>
+    <input type="text" id="search" placeholder="Nom, ville, site..."/>
+    <button class="btn btn-dark" onclick="resetAllFilters()">↺ Tout afficher</button>
+    <button class="btn btn-outline" onclick="setRelanceDates()">📅 Auto-relances</button>
+    <button class="btn btn-outline" id="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+</div><!-- /#fixed-header -->
 
-<!-- TABLE -->
-<div class="tbl-wrap">
-  <table id="main-table">
-    <thead>
-      <tr>
-        <th style="width:30px">#</th>
-        <th onclick="sortBy('prio')" title="Cliquer pour trier">⭐</th>
-        <th onclick="sortBy('name')">Agence ↕</th>
-        <th onclick="sortBy('zone')">Zone ↕</th>
-        <th>Ville</th>
-        <th>Coordonnées</th>
-        <th>Site</th>
-        <th onclick="sortBy('status')">Statut ↕</th>
-        <th onclick="sortBy('contact')">Date contact ↕</th>
-        <th onclick="sortBy('relance')">Relance prévue ↕</th>
-        <th class="notes-td">Notes</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
-  <div id="empty-state">Aucune agence ne correspond aux filtres sélectionnés.</div>
-</div>
+<!-- SCROLL AREA — seules les lignes de données défilent -->
+<div id="scroll-area">
+  <!-- TABLE -->
+  <div class="tbl-wrap">
+    <table id="main-table">
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th onclick="sortBy('prio')" title="Cliquer pour trier">⭐</th>
+          <th onclick="sortBy('name')">Agence ↕</th>
+          <th onclick="sortBy('zone')">Zone ↕</th>
+          <th>Ville</th>
+          <th>Coordonnées</th>
+          <th>Site</th>
+          <th onclick="sortBy('status')">Statut ↕</th>
+          <th onclick="sortBy('contact')">Date contact ↕</th>
+          <th onclick="sortBy('relance')">Relance prévue ↕</th>
+          <th class="notes-td">Notes</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="empty-state">Aucune agence ne correspond aux filtres sélectionnés.</div>
+  </div>
+</div><!-- /#scroll-area -->
 
 <script>
+// ═══════════════════════════════════════════════════
+// LAYOUT — ajuster le top du scroll-area selon la hauteur du header fixe
+// ═══════════════════════════════════════════════════
+function adjustLayout() {
+  const h = document.getElementById('fixed-header').offsetHeight;
+  document.getElementById('scroll-area').style.top = h + 'px';
+}
+window.addEventListener('resize', adjustLayout);
+
 // ═══════════════════════════════════════════════════
 // FIREBASE INIT
 // ═══════════════════════════════════════════════════
@@ -350,6 +369,7 @@ async function initData() {
 
     updateStats();
     renderTable();
+    adjustLayout();
 
   } catch(e) {
     console.error('Erreur init Firebase:', e);
@@ -536,6 +556,7 @@ function updateStats() {
   } else {
     alertBar.classList.remove('show');
   }
+  adjustLayout();
 }
 
 // ═══════════════════════════════════════════════════
