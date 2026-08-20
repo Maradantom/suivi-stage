@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Suivi Prospection — Stage Architecture</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f4f1;color:#1a1a1a;font-size:13px}
+    /* NAV */
+    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333;position:sticky;top:0;z-index:100}
+    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s}
+    nav a:hover,nav a.active{background:#fff;color:#111}
+    /* HEADER */
+    .hdr{background:#1a1a1a;color:#fff;padding:1.5rem 1.5rem 1.2rem}
+    .hdr h1{font-size:1.2rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .hdr p{margin-top:.25rem;font-size:.78rem;color:#888}
+    /* LOADING */
+    #loading-screen{position:fixed;inset:0;background:#1a1a1a;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#fff}
+    #loading-screen h2{font-size:1rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#888}
+    .spinner{width:36px;height:36px;border:3px solid #333;border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* STATS BAR */
+    .stats-bar{background:#fff;border-bottom:1px solid #e5e5e5;padding:.8rem 1.5rem;display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap}
+    .stat-pill{display:flex;align-items:center;gap:.4rem;background:#f5f5f5;border-radius:20px;padding:.3rem .8rem;font-size:.75rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+    .stat-pill:hover{border-color:#1a1a1a}
+    .stat-pill.active{border-color:#1a1a1a;background:#1a1a1a;color:#fff}
+    .stat-pill .num{font-size:1rem;font-weight:800}
+    /* ALERT */
+    .alert{background:#fef2f2;border-left:4px solid #dc2626;padding:.7rem 1.5rem;font-size:.8rem;color:#991b1b;display:none}
+    .alert.show{display:block}
+    /* CONTROLS */
+    .controls{background:#fff;border-bottom:1px solid #e5e5e5;padding:.7rem 1.5rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}
+    .controls input,.controls select{border:1px solid #ddd;border-radius:6px;padding:.4rem .7rem;font-size:.8rem;background:#fff;color:#1a1a1a}
+    .controls input{width:200px}
+    .controls input:focus,.controls select:focus{outline:none;border-color:#1a1a1a}
+    label.ctrl-lbl{font-size:.75rem;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .btn{border:none;border-radius:6px;padding:.4rem 1rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .15s}
+    .btn-dark{background:#1a1a1a;color:#fff}.btn-dark:hover{background:#333}
+    .btn-outline{background:transparent;border:1px solid #ccc;color:#555}.btn-outline:hover{border-color:#1a1a1a;color:#1a1a1a}
+    /* TABLE WRAPPER */
+    .tbl-wrap{overflow-x:auto;margin:1rem 1.5rem 2rem}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    thead{position:sticky;top:40px;z-index:10;background:#1a1a1a;color:#fff}
+    th{padding:.75rem .8rem;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;cursor:pointer;user-select:none}
+    th:hover{background:#333}
+    td{padding:.6rem .8rem;border-bottom:1px solid #f0f0f0;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#fafafa}
+    tr.overdue td{background:#fff5f5}
+    /* ZONE BADGE */
+    .badge{font-size:.65rem;font-weight:700;padding:.18rem .45rem;border-radius:12px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+    .b-lyon{background:#dbeafe;color:#1d4ed8}
+    .b-alpes{background:#dcfce7;color:#15803d}
+    .b-sud{background:#ffedd5;color:#c2670a}
+    /* STATUS */
+    select.status-sel{border:none;border-radius:6px;padding:.25rem .5rem;font-size:.75rem;font-weight:600;cursor:pointer;width:130px}
+    .s-nc{background:#f3f4f6;color:#6b7280}
+    .s-em{background:#dbeafe;color:#1d4ed8}
+    .s-r1{background:#fef3c7;color:#d97706}
+    .s-r2{background:#ffedd5;color:#ea580c}
+    .s-rp{background:#ccfbf1;color:#0f766e}
+    .s-en{background:#ede9fe;color:#7c3aed}
+    .s-ok{background:#d1fae5;color:#065f46}
+    .s-rf{background:#f3f4f6;color:#9ca3af;text-decoration:line-through}
+    /* DATE INPUTS */
+    input.date-in{border:1px solid #e5e5e5;border-radius:6px;padding:.25rem .4rem;font-size:.75rem;color:#1a1a1a;background:#fff;width:110px}
+    input.date-in:focus{outline:none;border-color:#1a1a1a}
+    input.date-in.overdue{border-color:#dc2626;background:#fff5f5;color:#dc2626}
+    input.date-in.today{border-color:#d97706;background:#fffbeb;color:#d97706}
+    /* NOTES */
+    td.notes-td{min-width:150px;max-width:220px}
+    textarea.note-ta{border:1px solid #e5e5e5;border-radius:6px;padding:.25rem .4rem;font-size:.75rem;color:#1a1a1a;background:#fff;width:100%;min-height:32px;resize:vertical;font-family:inherit}
+    textarea.note-ta:focus{outline:none;border-color:#1a1a1a}
+    /* STARS / PRIORITY */
+    .star{cursor:pointer;font-size:1rem;color:#ddd;transition:color .1s}
+    .star.on{color:#f59e0b}
+    .star:hover{color:#f59e0b}
+    /* LINKS */
+    a.site-lnk{color:#1d4ed8;text-decoration:none;font-size:.78rem}
+    a.site-lnk:hover{text-decoration:underline}
+    a.tel-lnk{color:#1a1a1a;text-decoration:none}
+    a.tel-lnk:hover{text-decoration:underline}
+    .contact-cell{display:flex;flex-direction:column;gap:2px}
+    /* RELANCE BTN */
+    .btn-relance{border:none;background:#f0fdf4;color:#15803d;border-radius:5px;padding:.18rem .45rem;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap}
+    .btn-relance:hover{background:#dcfce7}
+    /* SAVED INDICATOR */
+    #save-ind{font-size:.72rem;color:#15803d;font-weight:600;opacity:0;transition:opacity .4s}
+    /* SYNC INDICATOR */
+    #sync-ind{font-size:.72rem;color:#6b7280;margin-left:auto}
+    /* EMPTY STATE */
+    #empty-state{text-align:center;padding:3rem;color:#aaa;display:none}
+    /* EXPORT */
+    #export-btn{margin-left:auto}
+  </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <h2>Connexion à Firebase…</h2>
+</div>
+
+<nav>
+  <a href="agences.html">📋 Annuaire agences</a>
+  <a href="suivi_firebase.html" class="active">📊 Tableau de suivi</a>
+</nav>
+
+<div class="hdr">
+  <h1>Tableau de suivi — Prospection Stage</h1>
+  <p>Données synchronisées en temps réel via Firebase — accessibles depuis tous vos appareils</p>
+</div>
+
+<!-- ALERT RELANCES -->
+<div class="alert" id="alert-bar">
+  ⚠️ <strong id="alert-msg"></strong> — pensez à les relancer aujourd'hui !
+</div>
+
+<!-- STATS / FILTERS PILLS -->
+<div class="stats-bar">
+  <span style="font-size:.72rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Filtrer :</span>
+  <div class="stat-pill active" data-filter="all"><span class="num" id="cnt-all">71</span>&nbsp;Toutes</div>
+  <div class="stat-pill" data-filter="nc"><span class="num" id="cnt-nc">—</span>&nbsp;Non contacté</div>
+  <div class="stat-pill" data-filter="em"><span class="num" id="cnt-em">—</span>&nbsp;Envoyé</div>
+  <div class="stat-pill" data-filter="r1"><span class="num" id="cnt-r1">—</span>&nbsp;Relance 1</div>
+  <div class="stat-pill" data-filter="r2"><span class="num" id="cnt-r2">—</span>&nbsp;Relance 2</div>
+  <div class="stat-pill" data-filter="rp"><span class="num" id="cnt-rp">—</span>&nbsp;Réponse</div>
+  <div class="stat-pill" data-filter="en"><span class="num" id="cnt-en">—</span>&nbsp;Entretien</div>
+  <div class="stat-pill" data-filter="ok"><span class="num" id="cnt-ok">—</span>&nbsp;Stage ✓</div>
+  <div class="stat-pill" data-filter="prio"><span class="num" id="cnt-prio">—</span>&nbsp;⭐ Priorité</div>
+  <span id="save-ind">✓ Sauvegardé</span>
+  <span id="sync-ind">🔄 Firebase</span>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <label class="ctrl-lbl">Zone</label>
+  <select id="zone-filter">
+    <option value="">Toutes</option>
+    <option value="Lyon">Lyon</option>
+    <option value="Alpes">Alpes</option>
+    <option value="Sud">Sud</option>
+  </select>
+  <label class="ctrl-lbl">Recherche</label>
+  <input type="text" id="search" placeholder="Nom, ville, site..."/>
+  <button class="btn btn-dark" onclick="resetAllFilters()">↺ Tout afficher</button>
+  <button class="btn btn-outline" onclick="setRelanceDates()">📅 Auto-relances</button>
+  <button class="btn btn-outline" id="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+</div>
+
+<!-- TABLE -->
+<div class="tbl-wrap">
+  <table id="main-table">
+    <thead>
+      <tr>
+        <th style="width:30px">#</th>
+        <th onclick="sortBy('prio')" title="Cliquer pour trier">⭐</th>
+        <th onclick="sortBy('name')">Agence ↕</th>
+        <th onclick="sortBy('zone')">Zone ↕</th>
+        <th>Ville</th>
+        <th>Coordonnées</th>
+        <th>Site</th>
+        <th onclick="sortBy('status')">Statut ↕</th>
+        <th onclick="sortBy('contact')">Date contact ↕</th>
+        <th onclick="sortBy('relance')">Relance prévue ↕</th>
+        <th class="notes-td">Notes</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="empty-state">Aucune agence ne correspond aux filtres sélectionnés.</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// FIREBASE INIT
+// ═══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBob3K6q2ntwOGGE8GylgqvRjPsZ95ArYc",
+  authDomain: "stage-read.firebaseapp.com",
+  projectId: "stage-read",
+  storageBucket: "stage-read.firebasestorage.app",
+  messagingSenderId: "943341224332",
+  appId: "1:943341224332:web:d5232d5cb7713707b616a9"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const COL = 'prospection';
+
+// ═══════════════════════════════════════════════════
+// DATA — 71 agences
+// ═══════════════════════════════════════════════════
+const AGENCIES = [
+  // ZONE LYON (21)
+  {id:'l01',zone:'Lyon',name:'Résidences de Prestige by CV',city:'Villeurbanne',phone:'04 69 00 11 49',email:'contact@residenceprestige.com',site:'residenceprestige.com'},
+  {id:'l02',zone:'Lyon',name:'Vielliard & Francheteau Architectures',city:'Écully',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
+  {id:'l03',zone:'Lyon',name:'Laurent Guillaud-Lozanne',city:'Champagne-au-Mont-d\'Or',phone:'04 28 29 15 29',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
+  {id:'l04',zone:'Lyon',name:'A2-SB — Sébastien Belle',city:'Lyon 3e',phone:'09 54 56 89 43',email:'contact@a2-sb.com',site:'a2-sb.com'},
+  {id:'l05',zone:'Lyon',name:'Cédric Dallière Architecte',city:'Lyon 3e',phone:'07 86 89 63 97',email:'',site:'cedricdalliere.com'},
+  {id:'l06',zone:'Lyon',name:'Ocube Architecture',city:'Lyon 4e',phone:'04 72 48 86 04',email:'',site:'ocube.eu'},
+  {id:'l07',zone:'Lyon',name:'Claude Veyret Architecte',city:'Villeurbanne',phone:'06 77 27 63 13',email:'claude.veyret@gmail.com',site:'claude-veyret.fr'},
+  {id:'l08',zone:'Lyon',name:'Martin & Martin',city:'Lyon 1er',phone:'06 63 73 92 99',email:'contact@martin-et-martin.net',site:'martin-et-martin.net'},
+  {id:'l09',zone:'Lyon',name:'ARCH2L',city:'Lyon 6e',phone:'04 12 16 08 51',email:'contact@arch2l.fr',site:'arch2l.fr'},
+  {id:'l10',zone:'Lyon',name:'Christophe Sarlandie',city:'Lyon 7e',phone:'07 64 07 90 87',email:'atelier@christophesarlandie.com',site:'christophesarlandie.com'},
+  {id:'l11',zone:'Lyon',name:'Studio Ladoit',city:'Lyon 9e',phone:'06 28 54 08 56',email:'margaux@studio-ladoit.fr',site:'studio-ladoit.fr'},
+  {id:'l12',zone:'Lyon',name:'BY|YB — Yves Bonnici',city:'Bron',phone:'',email:'',site:'byyb-adc.com'},
+  {id:'l13',zone:'Lyon',name:'HAVAH',city:'Lyon 5e',phone:'04 72 70 52 69',email:'contact@havah.archi',site:'havah.fr'},
+  {id:'l14',zone:'Lyon',name:'Atelier OCTA',city:'Lyon 1er',phone:'04 28 29 60 66',email:'contact@atelier-octa.fr',site:'atelier-octa.fr'},
+  {id:'l15',zone:'Lyon',name:'DEVARAN Architecture & Design',city:'Lyon 6e',phone:'',email:'',site:'devaran.fr'},
+  {id:'l16',zone:'Lyon',name:'Eric Aguera Architectes',city:'Lyon 2e',phone:'04 78 37 91 14',email:'contact@ea-architectes.com',site:'eric-aguera-architectes.com'},
+  {id:'l17',zone:'Lyon',name:'Delphine Molin Architecte',city:'Limonest',phone:'09 74 56 14 38',email:'',site:'agence-architecte-delphine-molin.fr'},
+  {id:'l18',zone:'Lyon',name:'Marion Lanoë',city:'Lyon 1er',phone:'06 78 14 47 08',email:'contact@lanoemarion.com',site:'lanoemarion.com'},
+  {id:'l19',zone:'Lyon',name:'Studio Anata',city:'Lyon 3e',phone:'06 08 13 40 12',email:'contact@studioanata.com',site:'studioanata.com'},
+  {id:'l20',zone:'Lyon',name:'Aproplac',city:'Saint-Genis-Laval',phone:'04 78 56 12 28',email:'contact@aproplac.fr',site:'aproplac.fr'},
+  {id:'l21',zone:'Lyon',name:'Alveoles Architecture',city:'Lyon 9e',phone:'',email:'',site:'alveoles.eu'},
+  // ZONE ALPES (24)
+  {id:'a01',zone:'Alpes',name:'580 Rive Est',city:'Menthon-St-Bernard',phone:'06 75 34 97 15',email:'info@580riveest.fr',site:'580riveest.fr'},
+  {id:'a02',zone:'Alpes',name:'Archidomo Architecture',city:'Talloires-Montmin',phone:'04 50 46 06 24',email:'contact@archidomo.fr',site:'archidomo.fr'},
+  {id:'a03',zone:'Alpes',name:'Agence Amevet',city:'Chambéry',phone:'04 79 71 11 51',email:'contact@amevet.fr',site:'amevet.fr'},
+  {id:'a04',zone:'Alpes',name:'Axe&D Architectes',city:'Poisy / Annecy',phone:'04 50 22 68 00',email:'',site:'axe-d.com'},
+  {id:'a05',zone:'Alpes',name:'Favre & Libes Architectes',city:'Annecy',phone:'04 50 57 64 54',email:'',site:'favre-libes-architectes.com'},
+  {id:'a06',zone:'Alpes',name:'Real Dear Architecte',city:'Annecy',phone:'06 07 38 39 11',email:'architecte@real-dear.com',site:'real-dear.com'},
+  {id:'a07',zone:'Alpes',name:'Jean-Philippe Besson Architecture',city:'Thônes',phone:'04 50 32 70 96',email:'',site:'besson.archi'},
+  {id:'a08',zone:'Alpes',name:'MVMZ Architecture',city:'La Clusaz',phone:'04 50 10 92 99',email:'',site:'mvmz-architecture.com'},
+  {id:'a09',zone:'Alpes',name:'Goy Architecte',city:'La Clusaz',phone:'',email:'',site:'goy-architecte.fr'},
+  {id:'a10',zone:'Alpes',name:'Michel Thevenet Architecte',city:'La Clusaz',phone:'04 50 02 43 46',email:'',site:'thevenet-michel.com'},
+  {id:'a11',zone:'Alpes',name:'Art Project Megève',city:'Megève',phone:'04 50 58 66 25',email:'',site:'artproject-megeve.com'},
+  {id:'a12',zone:'Alpes',name:'Grosset Janin',city:'Megève',phone:'04 50 21 29 06',email:'',site:'grossetjanin.com'},
+  {id:'a13',zone:'Alpes',name:'Paul Brondex et Fils',city:'Combloux',phone:'04 50 58 65 39',email:'contact@paul-brondex.com',site:'paul-brondex.com'},
+  {id:'a14',zone:'Alpes',name:'Laforce Architecture',city:'Chamonix',phone:'04 50 58 11 08',email:'',site:'laforcearchitecture.com'},
+  {id:'a15',zone:'Alpes',name:'FedArch Studio',city:'Chamonix',phone:'',email:'',site:'fed-arch.com'},
+  {id:'a16',zone:'Alpes',name:'Chevallier Architectes',city:'Chamonix',phone:'',email:'',site:'chevallier-architectes.fr'},
+  {id:'a17',zone:'Alpes',name:'Thura Architecture',city:'Courchevel 1850',phone:'',email:'',site:'thura-architecture.fr'},
+  {id:'a18',zone:'Alpes',name:'Seize Dix Sept Architectures',city:'Moûtiers',phone:'07 78 79 06 51',email:'contact@seizedixsept.fr',site:'seizedixsept.fr'},
+  {id:'a19',zone:'Alpes',name:'Atelier Aulp',city:'Bourg-Saint-Maurice',phone:'06 13 62 71 59',email:'',site:'atelier-aulp.com'},
+  {id:'a20',zone:'Alpes',name:'Atelier NovAlp',city:'Aix-les-Bains',phone:'06 82 32 16 67',email:'contact@atelier-novalp.com',site:'atelier-novalp.com'},
+  {id:'a21',zone:'Alpes',name:'Atelier Raymond Brun Architectes',city:'Barberaz (Chambéry)',phone:'',email:'',site:'atelier-brun-architectes.com'},
+  {id:'a22',zone:'Alpes',name:'Artenova',city:'Thonon-les-Bains',phone:'04 50 17 01 93',email:'',site:'artenova-thonon-les-bains.fr'},
+  {id:'a23',zone:'Alpes',name:'Design du Lac',city:'Évian-les-Bains',phone:'',email:'',site:'designdulac-74.fr'},
+  {id:'a24',zone:'Alpes',name:'Chalet Design',city:'Taninges',phone:'',email:'',site:'chaletdesign.com'},
+  // ZONE SUD (26)
+  {id:'s01',zone:'Sud',name:'Laurent Guillaud-Lozanne (St-Tropez)',city:'Saint-Tropez',phone:'04 22 14 66 35',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
+  {id:'s02',zone:'Sud',name:'Atelier Sabrina Carlevaris',city:'Gassin',phone:'06 15 50 13 64',email:'sabrina@ateliercarlevaris.com',site:'sabrinacarlevaris.com'},
+  {id:'s03',zone:'Sud',name:'CBG Architecture & Urbanisme',city:'Port Grimaud',phone:'04 94 56 30 34',email:'contact@cbgarchitecture.com',site:'cbgarchitecture.com'},
+  {id:'s04',zone:'Sud',name:'Art Élite — Artélite',city:'Port Cogolin',phone:'04 94 43 42 71',email:'',site:'artelite-architecte-var.com'},
+  {id:'s05',zone:'Sud',name:'Architecture Privé (A&R Studio)',city:'Sainte-Maxime',phone:'06 46 54 67 53',email:'contact@archprive.com',site:'archprive.com'},
+  {id:'s06',zone:'Sud',name:'Isabelle Allard Architecte',city:'Saint-Raphaël',phone:'06 44 24 12 32',email:'info.ia.architecte@gmail.com',site:'ia-archi.fr'},
+  {id:'s07',zone:'Sud',name:'VX Architecture — Véronique Xueref',city:'Fréjus',phone:'06 08 00 16 37',email:'',site:'vx-architecture.com'},
+  {id:'s08',zone:'Sud',name:'High Five Architecte',city:'Fréjus',phone:'04 22 47 10 07',email:'agence@highfive.archi',site:'highfive.archi'},
+  {id:'s09',zone:'Sud',name:'AAPL — Pascal Lestringant',city:'La Valette-du-Var',phone:'04 94 33 70 52',email:'contact@aapl-archi.com',site:'aapl-archi.com'},
+  {id:'s10',zone:'Sud',name:'Atelier Jean Gouzy',city:'Six-Fours-les-Plages',phone:'04 94 06 24 53',email:'contact@gouzy-architecte.fr',site:'gouzy-architecte.fr'},
+  {id:'s11',zone:'Sud',name:'Atelier Archipel Sud',city:'Le Pradet',phone:'04 94 08 37 84',email:'',site:'atelierarchipelsud.fr'},
+  {id:'s12',zone:'Sud',name:'Architecte Coscolla',city:'La Seyne-sur-Mer',phone:'',email:'',site:'architectecoscolla.com'},
+  {id:'s13',zone:'Sud',name:'R-House Design',city:'Mougins',phone:'04 93 90 95 41',email:'contact@r-housedesign.fr',site:'r-housedesign.fr'},
+  {id:'s14',zone:'Sud',name:'Marcoux Mathern & Associés',city:'Cannes',phone:'04 93 30 08 96',email:'',site:'marcouxmathern.com'},
+  {id:'s15',zone:'Sud',name:'IN QUARTO Architecte & Associés',city:'Châteauneuf-Grasse',phone:'04 93 66 38 35',email:'contact@inquartoarchitecte.fr',site:'inquartoarchitecte.fr'},
+  {id:'s16',zone:'Sud',name:'Atelier Architecture Croisette',city:'Mougins',phone:'',email:'',site:'atelierarchitecturecroisette.fr'},
+  {id:'s17',zone:'Sud',name:'Fabien Durbano Architecte DPLG',city:'Mougins',phone:'',email:'',site:'fabiendurbano.com'},
+  {id:'s18',zone:'Sud',name:'Vielliard & Francheteau (Nice)',city:'Nice',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
+  {id:'s19',zone:'Sud',name:'Ulysse Géroux + Architects',city:'Nice',phone:'06 15 56 59 86',email:'',site:'ulyssegerouxarchitects.com'},
+  {id:'s20',zone:'Sud',name:'Blue Architecture',city:'Villefranche-sur-Mer',phone:'09 50 30 02 70',email:'bonjour@blue.archi',site:'blue.archi'},
+  {id:'s21',zone:'Sud',name:'Atelier Allione Architectes',city:'Beaulieu-sur-Mer',phone:'',email:'',site:'atelierallione.fr'},
+  {id:'s22',zone:'Sud',name:'Cochet Paîs',city:'Cap d\'Antibes',phone:'',email:'',site:'cochetpais.com'},
+  {id:'s23',zone:'Sud',name:'Daimon Design',city:'Roquebrune-Cap-Martin',phone:'',email:'',site:'daimondesign.com'},
+  {id:'s24',zone:'Sud',name:'DN Architectes',city:'Côte d\'Azur (multisite)',phone:'',email:'',site:'dnarchitectes.com'},
+  {id:'s25',zone:'Sud',name:'AAGP — Les Ateliers Guillaume Pujol',city:'Aix-en-Provence',phone:'06 24 75 64 94',email:'contact@pujol-archi.com',site:'pujol-archi.com'},
+  {id:'s26',zone:'Sud',name:'Au Temps des Bastides',city:'Éguilles / Pays d\'Aix',phone:'04 42 50 63 28',email:'',site:'autempsdesbastides.com'},
+];
+
+// ═══════════════════════════════════════════════════
+// STATUT CONFIG
+// ═══════════════════════════════════════════════════
+const STATUSES = {
+  'nc': {label:'Non contacté', cls:'s-nc', days:null},
+  'em': {label:'Email envoyé', cls:'s-em', days:14},
+  'r1': {label:'Relance 1',    cls:'s-r1', days:21},
+  'r2': {label:'Relance 2',   cls:'s-r2', days:28},
+  'rp': {label:'Réponse reçue',cls:'s-rp',days:null},
+  'en': {label:'Entretien',   cls:'s-en', days:null},
+  'ok': {label:'Stage obtenu ✓',cls:'s-ok',days:null},
+  'rf': {label:'Refus',       cls:'s-rf', days:null},
+};
+
+// ═══════════════════════════════════════════════════
+// LOCAL DATA CACHE (rempli depuis Firestore)
+// ═══════════════════════════════════════════════════
+let data = {};
+
+function getEntry(id) {
+  return data[id] || {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
+}
+
+// Sauvegarde dans Firestore (+ cache local immédiat)
+async function saveEntry(id, field, val) {
+  if (!data[id]) data[id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
+  data[id][field] = val;
+  try {
+    await db.collection(COL).doc(id).set({[field]: val}, {merge: true});
+    flashSaved();
+  } catch(e) {
+    console.error('Erreur Firestore:', e);
+    document.getElementById('sync-ind').textContent = '⚠️ Erreur sync';
+  }
+  updateStats();
+}
+
+function flashSaved() {
+  const ind = document.getElementById('save-ind');
+  ind.style.opacity = '1';
+  setTimeout(() => ind.style.opacity = '0', 1500);
+}
+
+// ═══════════════════════════════════════════════════
+// FIREBASE INIT DATA
+// ═══════════════════════════════════════════════════
+async function initData() {
+  try {
+    // Charger tous les documents existants
+    const snapshot = await db.collection(COL).get();
+    const existing = new Set();
+
+    snapshot.forEach(doc => {
+      data[doc.id] = doc.data();
+      existing.add(doc.id);
+    });
+
+    // Initialiser les agences manquantes (première utilisation)
+    const missing = AGENCIES.filter(ag => !existing.has(ag.id));
+    if (missing.length > 0) {
+      const batch = db.batch();
+      missing.forEach(ag => {
+        const ref = db.collection(COL).doc(ag.id);
+        batch.set(ref, {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false});
+        data[ag.id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
+      });
+      await batch.commit();
+    }
+
+    // Masquer l'écran de chargement
+    document.getElementById('loading-screen').style.display = 'none';
+    document.getElementById('sync-ind').textContent = '✅ Firebase connecté';
+    setTimeout(() => {
+      document.getElementById('sync-ind').textContent = '🔄 Firebase';
+    }, 2000);
+
+    updateStats();
+    renderTable();
+
+  } catch(e) {
+    console.error('Erreur init Firebase:', e);
+    document.getElementById('loading-screen').innerHTML =
+      '<div style="color:#ef4444;font-size:.9rem;text-align:center;padding:2rem">' +
+      '⚠️ Impossible de se connecter à Firebase.<br>Vérifiez votre connexion internet.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let activeFilter = 'all';
+let sortKey = '';
+let sortDir = 1;
+
+// ═══════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  return dateStr < today();
+}
+function isToday(dateStr) {
+  return dateStr === today();
+}
+function addDays(dateStr, n) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+function zoneBadge(zone) {
+  const map = {Lyon:'b-lyon', Alpes:'b-alpes', Sud:'b-sud'};
+  return `<span class="badge ${map[zone]||''}">${zone}</span>`;
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function getFiltered() {
+  const zf = document.getElementById('zone-filter').value;
+  const sf = document.getElementById('search').value.toLowerCase();
+  return AGENCIES.filter(ag => {
+    const e = getEntry(ag.id);
+    if (zf && ag.zone !== zf) return false;
+    if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf)) return false;
+    if (activeFilter === 'prio') return e.prio;
+    if (activeFilter !== 'all' && e.status !== activeFilter) return false;
+    return true;
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  let rows = getFiltered();
+
+  if (sortKey) {
+    rows.sort((a,b) => {
+      let va, vb;
+      if (sortKey === 'name') { va = a.name; vb = b.name; }
+      else if (sortKey === 'zone') { va = a.zone; vb = b.zone; }
+      else if (sortKey === 'status') { va = getEntry(a.id).status; vb = getEntry(b.id).status; }
+      else if (sortKey === 'contact') { va = getEntry(a.id).contactDate||''; vb = getEntry(b.id).contactDate||''; }
+      else if (sortKey === 'relance') { va = getEntry(a.id).relanceDate||''; vb = getEntry(b.id).relanceDate||''; }
+      else if (sortKey === 'prio') { va = getEntry(a.id).prio?0:1; vb = getEntry(b.id).prio?0:1; return va-vb; }
+      return sortDir * va.localeCompare(vb);
+    });
+  }
+
+  tbody.innerHTML = '';
+  const es = document.getElementById('empty-state');
+  if (rows.length === 0) { es.style.display='block'; return; } else es.style.display='none';
+
+  rows.forEach((ag, i) => {
+    const e = getEntry(ag.id);
+    const st = STATUSES[e.status] || STATUSES['nc'];
+    const overdue = isOverdue(e.relanceDate) && e.status !== 'ok' && e.status !== 'rf' && e.status !== 'rp';
+    const todayRel = isToday(e.relanceDate);
+    const tr = document.createElement('tr');
+    if (overdue) tr.classList.add('overdue');
+
+    const contactCell = [];
+    if (ag.phone) contactCell.push(`<a class="tel-lnk" href="tel:${ag.phone}">${ag.phone}</a>`);
+    if (ag.email) contactCell.push(`<a class="tel-lnk" href="mailto:${ag.email}" title="${ag.email}">✉ ${ag.email.split('@')[0]}@…</a>`);
+    if (!ag.phone && !ag.email) contactCell.push('<span style="color:#ccc;font-size:.72rem">Formulaire site</span>');
+
+    const statusOpts = Object.entries(STATUSES).map(([k,v]) =>
+      `<option value="${k}" ${e.status===k?'selected':''}>${v.label}</option>`
+    ).join('');
+
+    const relCls = overdue ? 'overdue' : todayRel ? 'today' : '';
+
+    tr.innerHTML = `
+      <td style="color:#bbb;font-size:.72rem;text-align:right">${i+1}</td>
+      <td style="text-align:center"><span class="star ${e.prio?'on':''}" data-id="${ag.id}" onclick="togglePrio('${ag.id}',this)">★</span></td>
+      <td style="font-weight:600;min-width:160px">${ag.name}</td>
+      <td>${zoneBadge(ag.zone)}</td>
+      <td style="color:#666;white-space:nowrap">${ag.city}</td>
+      <td><div class="contact-cell">${contactCell.join('')}</div></td>
+      <td><a class="site-lnk" href="https://${ag.site}" target="_blank">${ag.site}</a></td>
+      <td>
+        <select class="status-sel ${st.cls}" data-id="${ag.id}" onchange="changeStatus('${ag.id}',this)">
+          ${statusOpts}
+        </select>
+      </td>
+      <td>
+        <input type="date" class="date-in" data-id="${ag.id}" data-field="contactDate" value="${e.contactDate||''}"
+          onchange="saveEntry('${ag.id}','contactDate',this.value);autoRelance('${ag.id}')"/>
+      </td>
+      <td>
+        <input type="date" class="date-in ${relCls}" data-id="${ag.id}" data-field="relanceDate" value="${e.relanceDate||''}"
+          onchange="saveEntry('${ag.id}','relanceDate',this.value);renderTable()"/>
+        ${overdue?'<br><span style="color:#dc2626;font-size:.68rem;font-weight:700">EN RETARD</span>':''}
+        ${todayRel&&!overdue?'<br><span style="color:#d97706;font-size:.68rem;font-weight:700">AUJOURD\'HUI</span>':''}
+      </td>
+      <td class="notes-td">
+        <textarea class="note-ta" data-id="${ag.id}" rows="1"
+          onchange="saveEntry('${ag.id}','notes',this.value)"
+          placeholder="Notes…">${e.notes||''}</textarea>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function changeStatus(id, sel) {
+  const newStatus = sel.value;
+  sel.className = `status-sel ${STATUSES[newStatus].cls}`;
+  saveEntry(id, 'status', newStatus);
+  if (STATUSES[newStatus].days) {
+    const e = getEntry(id);
+    if (!e.relanceDate) {
+      const base = e.contactDate || today();
+      const rel = addDays(base, STATUSES[newStatus].days);
+      saveEntry(id, 'relanceDate', rel);
+    }
+  }
+  renderTable();
+}
+
+function togglePrio(id, el) {
+  const e = getEntry(id);
+  const newVal = !e.prio;
+  saveEntry(id, 'prio', newVal);
+  el.classList.toggle('on', newVal);
+  updateStats();
+}
+
+function autoRelance(id) {
+  const e = getEntry(id);
+  if (e.contactDate && !e.relanceDate && STATUSES[e.status]?.days) {
+    saveEntry(id, 'relanceDate', addDays(e.contactDate, STATUSES[e.status].days));
+    renderTable();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// STATS & ALERTS
+// ═══════════════════════════════════════════════════
+function updateStats() {
+  const counts = {nc:0,em:0,r1:0,r2:0,rp:0,en:0,ok:0,rf:0,prio:0};
+  AGENCIES.forEach(ag => {
+    const e = getEntry(ag.id);
+    if (counts[e.status] !== undefined) counts[e.status]++;
+    if (e.prio) counts.prio++;
+  });
+  document.getElementById('cnt-all').textContent = AGENCIES.length;
+  ['nc','em','r1','r2','rp','en','ok','prio'].forEach(k => {
+    const el = document.getElementById('cnt-'+k);
+    if (el) el.textContent = counts[k] || 0;
+  });
+  const overdue = AGENCIES.filter(ag => {
+    const e = getEntry(ag.id);
+    return isOverdue(e.relanceDate) && e.status !== 'ok' && e.status !== 'rf' && e.status !== 'rp';
+  });
+  const alertBar = document.getElementById('alert-bar');
+  if (overdue.length > 0) {
+    document.getElementById('alert-msg').textContent =
+      `${overdue.length} relance${overdue.length>1?'s':''} en retard`;
+    alertBar.classList.add('show');
+  } else {
+    alertBar.classList.remove('show');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════
+function sortBy(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = 1; }
+  renderTable();
+}
+
+function resetAllFilters() {
+  activeFilter = 'all';
+  document.getElementById('zone-filter').value = '';
+  document.getElementById('search').value = '';
+  document.querySelectorAll('.stat-pill').forEach(p => p.classList.toggle('active', p.dataset.filter==='all'));
+  renderTable();
+}
+
+function setRelanceDates() {
+  let set = 0;
+  AGENCIES.forEach(ag => {
+    const e = getEntry(ag.id);
+    if (e.contactDate && !e.relanceDate && STATUSES[e.status]?.days) {
+      saveEntry(ag.id, 'relanceDate', addDays(e.contactDate, STATUSES[e.status].days));
+      set++;
+    }
+  });
+  alert(`${set} date(s) de relance automatiquement calculée(s).`);
+  renderTable();
+}
+
+function exportCSV() {
+  const rows = [['Zone','Agence','Ville','Téléphone','Email','Site','Statut','Date contact','Relance prévue','Notes','Priorité']];
+  AGENCIES.forEach(ag => {
+    const e = getEntry(ag.id);
+    const st = STATUSES[e.status]?.label || '';
+    rows.push([ag.zone,ag.name,ag.city,ag.phone,ag.email,ag.site,st,e.contactDate||'',e.relanceDate||'',e.notes||'',e.prio?'Oui':'']);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'prospection_stage_'+today()+'.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.stat-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    activeFilter = pill.dataset.filter;
+    document.querySelectorAll('.stat-pill').forEach(p => p.classList.toggle('active', p === pill));
+    renderTable();
+  });
+});
+document.getElementById('zone-filter').addEventListener('change', renderTable);
+document.getElementById('search').addEventListener('input', renderTable);
+
+// ═══════════════════════════════════════════════════
+// DÉMARRAGE
+// ═══════════════════════════════════════════════════
+initData();
+</script>
+</body>
+</html>
