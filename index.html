@@ -101,6 +101,49 @@
     #empty-state{text-align:center;padding:3rem;color:#aaa;display:none}
     /* EXPORT */
     #export-btn{margin-left:auto}
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE MOBILE
+    ═══════════════════════════════════════════ */
+    @media (max-width:700px){
+      /* Masquer le titre — inutile sur mobile */
+      .hdr{display:none}
+
+      /* Nav compact */
+      nav a{padding:.55rem .9rem;font-size:.72rem;letter-spacing:.02em}
+
+      /* Stats bar: scroll horizontal, no wrap */
+      .stats-bar{flex-wrap:nowrap;overflow-x:auto;padding:.45rem .75rem;gap:.55rem;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+      .stats-bar::-webkit-scrollbar{display:none}
+      .stats-bar>span:first-child{display:none} /* cache "Filtrer :" */
+      #save-ind,#sync-ind{white-space:nowrap;flex-shrink:0}
+
+      /* Stat pills compact */
+      .stat-pill{padding:.22rem .55rem;font-size:.68rem;white-space:nowrap;flex-shrink:0}
+      .stat-pill .num{font-size:.85rem}
+
+      /* Controls compact */
+      .controls{padding:.45rem .75rem;gap:.35rem}
+      label.ctrl-lbl{display:none}
+      .controls input{width:120px}
+      #export-btn{margin-left:0}
+
+      /* Table: pas de marges latérales */
+      .tbl-wrap{margin:0 0 2rem}
+
+      /* Table text plus petit */
+      th{font-size:.62rem;padding:.55rem .4rem}
+      td{font-size:.7rem;padding:.4rem .4rem}
+      input.date-in{width:95px;font-size:.68rem}
+      select.status-sel{width:110px;font-size:.68rem}
+      textarea.note-ta{min-height:28px;font-size:.68rem}
+
+      /* Touch scroll for scroll-area */
+      #scroll-area{-webkit-overflow-scrolling:touch}
+
+      /* Alert compact */
+      .alert{padding:.5rem .75rem;font-size:.75rem}
+    }
   </style>
 </head>
 <body>
