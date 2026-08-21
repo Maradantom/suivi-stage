@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Carte Agences — Stage Architecture</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Leaflet.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f4f1;color:#1a1a1a;font-size:13px;display:flex;flex-direction:column}
+
+    /* FIXED HEADER */
+    #fixed-header{position:fixed;top:0;left:0;right:0;z-index:1000}
+
+    /* NAV */
+    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333}
+    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s}
+    nav a:hover,nav a.active{background:#fff;color:#111}
+
+    /* SUBHEADER */
+    .subhdr{background:#1a1a1a;color:#fff;padding:.8rem 1.5rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;border-bottom:1px solid #333}
+    .subhdr h1{font-size:.95rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .subhdr p{font-size:.75rem;color:#888}
+
+    /* LOADING */
+    #loading-screen{position:fixed;inset:0;background:#1a1a1a;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#fff}
+    #loading-screen h2{font-size:1rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#888}
+    .spinner{width:36px;height:36px;border:3px solid #333;border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* CONTROLS BAR */
+    .map-controls{background:#fff;border-bottom:1px solid #e5e5e5;padding:.6rem 1.5rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
+    .zone-btn{border:2px solid transparent;border-radius:20px;padding:.3rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer;background:#f5f5f5;color:#555;transition:all .15s}
+    .zone-btn:hover{border-color:#1a1a1a}
+    .zone-btn.active-all{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+    .zone-btn.active-lyon{background:#dbeafe;color:#1d4ed8;border-color:#1d4ed8}
+    .zone-btn.active-alpes{background:#dcfce7;color:#15803d;border-color:#15803d}
+    .zone-btn.active-sud{background:#ffedd5;color:#c2670a;border-color:#c2670a}
+    .zone-btn.active-autres{background:#f3e8ff;color:#7c3aed;border-color:#7c3aed}
+    #map-search{border:1px solid #ddd;border-radius:6px;padding:.4rem .7rem;font-size:.8rem;width:200px}
+    #map-search:focus{outline:none;border-color:#1a1a1a}
+    #ag-count{font-size:.75rem;color:#888;margin-left:auto}
+
+    /* MAP */
+    #map-area{position:fixed;left:0;right:0;bottom:0}
+
+    /* LEGEND */
+    .map-legend{background:#fff;border-radius:8px;padding:.75rem 1rem;font-size:.72rem;line-height:1.9;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+    .map-legend b{display:block;margin-bottom:.3rem;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#555}
+    .leg-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:.4rem;vertical-align:middle}
+
+    /* POPUP */
+    .leaflet-popup-content-wrapper{border-radius:10px !important;box-shadow:0 4px 16px rgba(0,0,0,.15) !important}
+    .leaflet-popup-content{margin:10px 14px !important;font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;line-height:1.6}
+    .popup-name{font-weight:700;font-size:.88rem;margin-bottom:.35rem;color:#1a1a1a}
+    .popup-badge{font-size:.62rem;font-weight:700;padding:.15rem .4rem;border-radius:10px;text-transform:uppercase;letter-spacing:.03em;display:inline-block;margin-bottom:.4rem}
+    .popup-row{color:#555;margin:.1rem 0}
+    .popup-row a{color:#1d4ed8;text-decoration:none}
+    .popup-row a.mail{color:#7c3aed}
+    .popup-row a:hover{text-decoration:underline}
+    .popup-status{display:inline-block;border-radius:5px;padding:.2rem .5rem;font-size:.72rem;font-weight:600;margin-top:.35rem}
+
+    /* MOBILE */
+    @media(max-width:700px){
+      nav a{padding:.55rem .9rem;font-size:.72rem}
+      .subhdr{padding:.6rem .75rem}
+      .subhdr p{display:none}
+      .map-controls{padding:.45rem .75rem;gap:.4rem}
+      #map-search{width:130px}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <h2>Chargement de la carte…</h2>
+</div>
+
+<div id="fixed-header">
+  <nav>
+    <a href="carte.html" class="active">🗺️ Carte</a>
+    <a href="index.html">📊 Tableau de suivi</a>
+    <a href="modele-mail.html">📧 Modèle mail</a>
+  </nav>
+  <div class="subhdr">
+    <div>
+      <h1>🗺️ Carte des agences</h1>
+      <p>Localisation de toutes les agences prospectées — cliquez sur un marqueur pour les détails</p>
+    </div>
+  </div>
+  <div class="map-controls">
+    <button class="zone-btn active-all" data-zone="all" onclick="filterZone('all',this)">🌍 Toutes</button>
+    <button class="zone-btn" data-zone="Lyon" onclick="filterZone('Lyon',this)">Lyon</button>
+    <button class="zone-btn" data-zone="Alpes" onclick="filterZone('Alpes',this)">Alpes</button>
+    <button class="zone-btn" data-zone="Sud" onclick="filterZone('Sud',this)">Sud</button>
+    <button class="zone-btn" data-zone="Autres" onclick="filterZone('Autres',this)">Autres</button>
+    <input type="text" id="map-search" placeholder="Rechercher une agence…" oninput="filterSearch(this.value)"/>
+    <span id="ag-count"></span>
+  </div>
+</div>
+
+<div id="map-area"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBob3K6q2ntwOGGE8GylgqvRjPsZ95ArYc",
+  authDomain: "stage-read.firebaseapp.com",
+  projectId: "stage-read",
+  storageBucket: "stage-read.firebasestorage.app",
+  messagingSenderId: "943341224332",
+  appId: "1:943341224332:web:d5232d5cb7713707b616a9"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ═══════════════════════════════════════════════════
+// STATUTS
+// ═══════════════════════════════════════════════════
+const STATUSES = {
+  'nc': {label:'Non contacté', cls:'s-nc'},
+  'em': {label:'Email envoyé', cls:'s-em'},
+  'r1': {label:'Relance 1',    cls:'s-r1'},
+  'r2': {label:'Relance 2',    cls:'s-r2'},
+  'rp': {label:'Réponse reçue',cls:'s-rp'},
+  'en': {label:'Entretien',    cls:'s-en'},
+  'ok': {label:'Stage obtenu ✓',cls:'s-ok'},
+  'rf': {label:'Refus',        cls:'s-rf'},
+};
+const ST_COLORS = {
+  nc:'#9ca3af', em:'#3b82f6', r1:'#f59e0b', r2:'#f97316',
+  rp:'#14b8a6', en:'#8b5cf6', ok:'#10b981', rf:'#d1d5db'
+};
+
+// ═══════════════════════════════════════════════════
+// COORDONNÉES PAR VILLE
+// ═══════════════════════════════════════════════════
+const CITY_COORDS = {
+  // Lyon zone
+  'Villeurbanne':         [45.7676, 4.8797],
+  'Écully':               [45.7697, 4.7785],
+  'Champagne-au-Mont-d\'Or':[45.8214, 4.8092],
+  'Lyon 1er':             [45.7678, 4.8333],
+  'Lyon 2e':              [45.7497, 4.8308],
+  'Lyon 3e':              [45.7483, 4.8592],
+  'Lyon 4e':              [45.7794, 4.8225],
+  'Lyon 5e':              [45.7564, 4.8111],
+  'Lyon 6e':              [45.7722, 4.8569],
+  'Lyon 7e':              [45.7286, 4.8481],
+  'Lyon 8e':              [45.7361, 4.8769],
+  'Lyon 9e':              [45.7778, 4.8072],
+  'Lyon':                 [45.7640, 4.8357],
+  'Limonest':             [45.8258, 4.7736],
+  'Saint-Genis-Laval':    [45.6958, 4.7948],
+  'Bron':                 [45.7344, 4.9119],
+  // Alpes zone
+  'Menthon-St-Bernard':   [45.8594, 6.1953],
+  'Talloires-Montmin':    [45.8408, 6.2175],
+  'Chambéry':             [45.5646, 5.9178],
+  'Poisy / Annecy':       [45.9200, 6.1100],
+  'Annecy':               [45.8992, 6.1294],
+  'Thônes':               [45.8875, 6.3244],
+  'La Clusaz':            [45.9042, 6.4256],
+  'Megève':               [45.8570, 6.6183],
+  'Combloux':             [45.8911, 6.6528],
+  'Chamonix':             [45.9237, 6.8694],
+  'Courchevel 1850':      [45.4153, 6.6340],
+  'Moûtiers':             [45.4837, 6.5294],
+  'Bourg-Saint-Maurice':  [45.6181, 6.7694],
+  'Aix-les-Bains':        [45.6886, 5.9139],
+  'Barberaz (Chambéry)':  [45.5550, 5.9350],
+  'Thonon-les-Bains':     [46.3706, 6.4797],
+  'Évian-les-Bains':      [46.4014, 6.5897],
+  'Taninges':             [46.1047, 6.5897],
+  'Alpes':                [45.7000, 6.5000],
+  // Sud zone
+  'Saint-Tropez':         [43.2677, 6.6400],
+  'Gassin':               [43.2358, 6.5800],
+  'Port Grimaud':         [43.2731, 6.5731],
+  'Port Cogolin':         [43.2528, 6.5597],
+  'Sainte-Maxime':        [43.3097, 6.6381],
+  'Saint-Raphaël':        [43.4253, 6.7678],
+  'Fréjus':               [43.4328, 6.7369],
+  'La Valette-du-Var':    [43.1383, 5.9894],
+  'Six-Fours-les-Plages': [43.0997, 5.8219],
+  'Le Pradet':            [43.1058, 6.0225],
+  'La Seyne-sur-Mer':     [43.1003, 5.8833],
+  'Mougins':              [43.6044, 6.9906],
+  'Cannes':               [43.5528, 7.0174],
+  'Châteauneuf-Grasse':   [43.6619, 6.9617],
+  'Nice':                 [43.7102, 7.2620],
+  'Villefranche-sur-Mer': [43.7039, 7.3072],
+  'Beaulieu-sur-Mer':     [43.7083, 7.3319],
+  'Cap d\'Antibes':       [43.5617, 7.1219],
+  'Roquebrune-Cap-Martin':[43.7653, 7.4686],
+  'Aix-en-Provence':      [43.5297, 5.4474],
+  'Éguilles / Pays d\'Aix':[43.5486, 5.3847],
+  'Côte d\'Azur':         [43.7000, 7.2500],
+  'Sud':                  [43.5000, 6.5000],
+  // Autres
+  'Arcachon':             [44.6600, -1.1730],
+  'Corse':                [41.9192, 8.7386],
+  'Monaco':               [43.7384, 7.4246],
+  'Paris':                [48.8566, 2.3522],
+};
+
+// ═══════════════════════════════════════════════════
+// AGENCES (copie de index.html)
+// ═══════════════════════════════════════════════════
+const AGENCIES = [
+  {id:'l01',zone:'Lyon',name:'Résidences de Prestige by CV',city:'Villeurbanne',phone:'04 69 00 11 49',email:'contact@residenceprestige.com',site:'residenceprestige.com'},
+  {id:'l02',zone:'Lyon',name:'Vielliard & Francheteau Architectures',city:'Écully',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
+  {id:'l03',zone:'Lyon',name:'Laurent Guillaud-Lozanne',city:'Champagne-au-Mont-d\'Or',phone:'04 28 29 15 29',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
+  {id:'l04',zone:'Lyon',name:'A2-SB — Sébastien Belle',city:'Lyon 3e',phone:'09 54 56 89 43',email:'contact@a2-sb.com',site:'a2-sb.com'},
+  {id:'l05',zone:'Lyon',name:'Cédric Dallière Architecte',city:'Lyon 3e',phone:'07 86 89 63 97',email:'',site:'cedricdalliere.com'},
+  {id:'l06',zone:'Lyon',name:'Ocube Architecture',city:'Lyon 4e',phone:'04 72 48 86 04',email:'',site:'ocube.eu'},
+  {id:'l07',zone:'Lyon',name:'Claude Veyret Architecte',city:'Villeurbanne',phone:'06 77 27 63 13',email:'claude.veyret@gmail.com',site:'claude-veyret.fr'},
+  {id:'l08',zone:'Lyon',name:'Martin & Martin',city:'Lyon 1er',phone:'06 63 73 92 99',email:'contact@martin-et-martin.net',site:'martin-et-martin.net'},
+  {id:'l09',zone:'Lyon',name:'ARCH2L',city:'Lyon 6e',phone:'04 12 16 08 51',email:'contact@arch2l.fr',site:'arch2l.fr'},
+  {id:'l10',zone:'Lyon',name:'Christophe Sarlandie',city:'Lyon 7e',phone:'07 64 07 90 87',email:'atelier@christophesarlandie.com',site:'christophesarlandie.com'},
+  {id:'l11',zone:'Lyon',name:'Studio Ladoit',city:'Lyon 9e',phone:'06 28 54 08 56',email:'margaux@studio-ladoit.fr',site:'studio-ladoit.fr'},
+  {id:'l12',zone:'Lyon',name:'BY|YB — Yves Bonnici',city:'Bron',phone:'',email:'yves.bonnici@byyb-adc.com',site:'byyb-adc.com'},
+  {id:'l13',zone:'Lyon',name:'HAVAH',city:'Lyon 5e',phone:'04 72 70 52 69',email:'contact@havah.archi',site:'havah.fr'},
+  {id:'l14',zone:'Lyon',name:'Atelier OCTA',city:'Lyon 1er',phone:'04 28 29 60 66',email:'contact@atelier-octa.fr',site:'atelier-octa.fr'},
+  {id:'l15',zone:'Lyon',name:'DEVARAN Architecture & Design',city:'Lyon 6e',phone:'',email:'',site:'devaran.fr'},
+  {id:'l16',zone:'Lyon',name:'Eric Aguera Architectes',city:'Lyon 2e',phone:'04 78 37 91 14',email:'contact@ea-architectes.com',site:'eric-aguera-architectes.com'},
+  {id:'l17',zone:'Lyon',name:'Delphine Molin Architecte',city:'Limonest',phone:'09 74 56 14 38',email:'',site:'agence-architecte-delphine-molin.fr'},
+  {id:'l18',zone:'Lyon',name:'Marion Lanoë',city:'Lyon 1er',phone:'06 78 14 47 08',email:'contact@lanoemarion.com',site:'lanoemarion.com'},
+  {id:'l19',zone:'Lyon',name:'Studio Anata',city:'Lyon 3e',phone:'06 08 13 40 12',email:'contact@studioanata.com',site:'studioanata.com'},
+  {id:'l20',zone:'Lyon',name:'Aproplac',city:'Saint-Genis-Laval',phone:'04 78 56 12 28',email:'contact@aproplac.fr',site:'aproplac.fr'},
+  {id:'l21',zone:'Lyon',name:'Alveoles Architecture',city:'Lyon 9e',phone:'',email:'',site:'alveoles.eu'},
+  {id:'l22',zone:'Lyon',name:'ADC Architecture',city:'Lyon',phone:'',email:'',site:'adc-architecture.fr'},
+  {id:'l23',zone:'Lyon',name:'Atelier Giffon',city:'Lyon',phone:'',email:'',site:'ateliergiffon.com'},
+  {id:'l24',zone:'Lyon',name:'AUM Pierre Minassian',city:'Lyon',phone:'',email:'',site:'pierminassian.com'},
+  {id:'l25',zone:'Lyon',name:'BC Ateliers',city:'Lyon',phone:'',email:'',site:'bc-ateliers.com'},
+  {id:'l26',zone:'Lyon',name:'By Architectes',city:'Lyon',phone:'',email:'',site:'by-architectes.fr'},
+  {id:'l27',zone:'Lyon',name:'Dorga',city:'Lyon',phone:'',email:'',site:'dorga.fr'},
+  {id:'l28',zone:'Lyon',name:'Eric Touraille Architecte',city:'Lyon',phone:'',email:'',site:'erictouraille.com'},
+  {id:'l29',zone:'Lyon',name:'Forty Studio',city:'Lyon',phone:'',email:'',site:'forty-studio.fr'},
+  {id:'l30',zone:'Lyon',name:'Franck Vadot Architecte',city:'Lyon',phone:'',email:'',site:'franckvadot.com'},
+  {id:'l31',zone:'Lyon',name:'Gilbert Architecte',city:'Lyon',phone:'',email:'',site:'gilbert-architecte.fr'},
+  {id:'l32',zone:'Lyon',name:'La Maison Février',city:'Lyon',phone:'',email:'',site:'lamaisonfevrier.com'},
+  {id:'l33',zone:'Lyon',name:'Maison ELC',city:'Lyon',phone:'',email:'',site:'maison-elc.com'},
+  {id:'l34',zone:'Lyon',name:'Maison Sacha Goutorbe',city:'Lyon',phone:'',email:'',site:'sachagoutorbe.com'},
+  {id:'l35',zone:'Lyon',name:'Michel Guillot Architecte',city:'Lyon',phone:'',email:'',site:'michelguillot.fr'},
+  {id:'l36',zone:'Lyon',name:'Rehome',city:'Lyon',phone:'',email:'',site:'rehome.fr'},
+  {id:'l37',zone:'Lyon',name:'Split Studio',city:'Lyon',phone:'',email:'',site:'split-studio.fr'},
+  {id:'l38',zone:'Lyon',name:'Stéphane Millet Architecte',city:'Lyon',phone:'',email:'',site:'stephanemillet.com'},
+  {id:'l39',zone:'Lyon',name:'Studio FB3',city:'Lyon',phone:'',email:'',site:'studiofb3.com'},
+  {id:'l40',zone:'Lyon',name:'Tenbo Groupe',city:'Lyon',phone:'',email:'',site:'tenbogroupe.com'},
+  {id:'l41',zone:'Lyon',name:'David Fleury Design',city:'Lyon',phone:'',email:'',site:'davidfleury.design'},
+  {id:'a01',zone:'Alpes',name:'580 Rive Est',city:'Menthon-St-Bernard',phone:'06 75 34 97 15',email:'info@580riveest.fr',site:'580riveest.fr'},
+  {id:'a02',zone:'Alpes',name:'Archidomo Architecture',city:'Talloires-Montmin',phone:'04 50 46 06 24',email:'contact@archidomo.fr',site:'archidomo.fr'},
+  {id:'a03',zone:'Alpes',name:'Agence Amevet',city:'Chambéry',phone:'04 79 71 11 51',email:'contact@amevet.fr',site:'amevet.fr'},
+  {id:'a04',zone:'Alpes',name:'Axe&D Architectes',city:'Poisy / Annecy',phone:'04 50 22 68 00',email:'',site:'axe-d.com'},
+  {id:'a05',zone:'Alpes',name:'Favre & Libes Architectes',city:'Annecy',phone:'04 50 57 64 54',email:'',site:'favre-libes-architectes.com'},
+  {id:'a06',zone:'Alpes',name:'Real Dear Architecte',city:'Annecy',phone:'06 07 38 39 11',email:'architecte@real-dear.com',site:'real-dear.com'},
+  {id:'a07',zone:'Alpes',name:'Jean-Philippe Besson Architecture',city:'Thônes',phone:'04 50 32 70 96',email:'',site:'besson.archi'},
+  {id:'a08',zone:'Alpes',name:'MVMZ Architecture',city:'La Clusaz',phone:'04 50 10 92 99',email:'',site:'mvmz-architecture.com'},
+  {id:'a09',zone:'Alpes',name:'Goy Architecte',city:'La Clusaz',phone:'',email:'',site:'goy-architecte.fr'},
+  {id:'a10',zone:'Alpes',name:'Michel Thevenet Architecte',city:'La Clusaz',phone:'04 50 02 43 46',email:'',site:'thevenet-michel.com'},
+  {id:'a11',zone:'Alpes',name:'Art Project Megève',city:'Megève',phone:'04 50 58 66 25',email:'contact@artproject-megeve.com',site:'artproject-megeve.com'},
+  {id:'a12',zone:'Alpes',name:'Grosset Janin',city:'Megève',phone:'04 50 21 29 06',email:'',site:'grossetjanin.com'},
+  {id:'a13',zone:'Alpes',name:'Paul Brondex et Fils',city:'Combloux',phone:'04 50 58 65 39',email:'contact@paul-brondex.com',site:'paul-brondex.com'},
+  {id:'a14',zone:'Alpes',name:'Laforce Architecture',city:'Chamonix',phone:'04 50 58 11 08',email:'',site:'laforcearchitecture.com'},
+  {id:'a15',zone:'Alpes',name:'FedArch Studio',city:'Chamonix',phone:'',email:'',site:'fed-arch.com'},
+  {id:'a16',zone:'Alpes',name:'Chevallier Architectes',city:'Chamonix',phone:'',email:'',site:'chevallier-architectes.fr'},
+  {id:'a17',zone:'Alpes',name:'Thura Architecture',city:'Courchevel 1850',phone:'',email:'',site:'thura-architecture.fr'},
+  {id:'a18',zone:'Alpes',name:'Seize Dix Sept Architectures',city:'Moûtiers',phone:'07 78 79 06 51',email:'contact@seizedixsept.fr',site:'seizedixsept.fr'},
+  {id:'a19',zone:'Alpes',name:'Atelier Aulp',city:'Bourg-Saint-Maurice',phone:'06 13 62 71 59',email:'',site:'atelier-aulp.com'},
+  {id:'a20',zone:'Alpes',name:'Atelier NovAlp',city:'Aix-les-Bains',phone:'06 82 32 16 67',email:'contact@atelier-novalp.com',site:'atelier-novalp.com'},
+  {id:'a21',zone:'Alpes',name:'Atelier Raymond Brun Architectes',city:'Barberaz (Chambéry)',phone:'',email:'',site:'atelier-brun-architectes.com'},
+  {id:'a22',zone:'Alpes',name:'Artenova',city:'Thonon-les-Bains',phone:'04 50 17 01 93',email:'',site:'artenova-thonon-les-bains.fr'},
+  {id:'a23',zone:'Alpes',name:'Design du Lac',city:'Évian-les-Bains',phone:'',email:'',site:'designdulac-74.fr'},
+  {id:'a24',zone:'Alpes',name:'Chalet Design',city:'Taninges',phone:'',email:'',site:'chaletdesign.com'},
+  {id:'a25',zone:'Alpes',name:'Chalet Bayrou',city:'Alpes',phone:'',email:'',site:'chaletbayrou.com'},
+  {id:'a26',zone:'Alpes',name:'DaVinci Architecture',city:'Alpes',phone:'',email:'',site:'davinci-architecture.fr'},
+  {id:'a27',zone:'Alpes',name:'Eden Home',city:'Alpes',phone:'',email:'',site:'edenhome.fr'},
+  {id:'a28',zone:'Alpes',name:'Groupe Dunoyer',city:'Alpes',phone:'',email:'',site:'groupedunoyer.com'},
+  {id:'a29',zone:'Alpes',name:'Ikone Architecture',city:'Alpes',phone:'',email:'',site:'ikone-architecture.fr'},
+  {id:'a30',zone:'Alpes',name:'JMV Resort',city:'Alpes',phone:'',email:'',site:'jmv-resort.com'},
+  {id:'a31',zone:'Alpes',name:'La Maison de Jade',city:'Alpes',phone:'',email:'',site:'lamaisondejafe.com'},
+  {id:'a32',zone:'Alpes',name:'LVB Studio Construction',city:'Alpes',phone:'',email:'',site:'lvb-studio.fr'},
+  {id:'a33',zone:'Alpes',name:'Maam Studio',city:'Alpes',phone:'',email:'',site:'maam-studio.fr'},
+  {id:'a34',zone:'Alpes',name:'Maison Chiche',city:'Alpes',phone:'',email:'',site:'maisonchiche.com'},
+  {id:'a35',zone:'Alpes',name:'PCM Megève',city:'Megève',phone:'',email:'',site:'pcm-megeve.com'},
+  {id:'a36',zone:'Alpes',name:'Reia Architecture',city:'Alpes',phone:'',email:'',site:'reia-architecture.fr'},
+  {id:'a37',zone:'Alpes',name:'Daï Création',city:'Alpes',phone:'',email:'',site:'dai-creation.fr'},
+  {id:'a38',zone:'Alpes',name:'White Luxury Architecture',city:'Alpes',phone:'',email:'',site:'whiteluxury.fr'},
+  {id:'s01',zone:'Sud',name:'Laurent Guillaud-Lozanne (St-Tropez)',city:'Saint-Tropez',phone:'04 22 14 66 35',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
+  {id:'s02',zone:'Sud',name:'Atelier Sabrina Carlevaris',city:'Gassin',phone:'06 15 50 13 64',email:'sabrina@ateliercarlevaris.com',site:'sabrinacarlevaris.com'},
+  {id:'s03',zone:'Sud',name:'CBG Architecture & Urbanisme',city:'Port Grimaud',phone:'04 94 56 30 34',email:'contact@cbgarchitecture.com',site:'cbgarchitecture.com'},
+  {id:'s04',zone:'Sud',name:'Art Élite — Artélite',city:'Port Cogolin',phone:'04 94 43 42 71',email:'',site:'artelite-architecte-var.com'},
+  {id:'s05',zone:'Sud',name:'Architecture Privé (A&R Studio)',city:'Sainte-Maxime',phone:'06 46 54 67 53',email:'contact@archprive.com',site:'archprive.com'},
+  {id:'s06',zone:'Sud',name:'Isabelle Allard Architecte',city:'Saint-Raphaël',phone:'06 44 24 12 32',email:'info.ia.architecte@gmail.com',site:'ia-archi.fr'},
+  {id:'s07',zone:'Sud',name:'VX Architecture — Véronique Xueref',city:'Fréjus',phone:'06 08 00 16 37',email:'',site:'vx-architecture.com'},
+  {id:'s08',zone:'Sud',name:'High Five Architecte',city:'Fréjus',phone:'04 22 47 10 07',email:'agence@highfive.archi',site:'highfive.archi'},
+  {id:'s09',zone:'Sud',name:'AAPL — Pascal Lestringant',city:'La Valette-du-Var',phone:'04 94 33 70 52',email:'contact@aapl-archi.com',site:'aapl-archi.com'},
+  {id:'s10',zone:'Sud',name:'Atelier Jean Gouzy',city:'Six-Fours-les-Plages',phone:'04 94 06 24 53',email:'contact@gouzy-architecte.fr',site:'gouzy-architecte.fr'},
+  {id:'s11',zone:'Sud',name:'Atelier Archipel Sud',city:'Le Pradet',phone:'04 94 08 37 84',email:'',site:'atelierarchipelsud.fr'},
+  {id:'s12',zone:'Sud',name:'Architecte Coscolla',city:'La Seyne-sur-Mer',phone:'',email:'',site:'architectecoscolla.com'},
+  {id:'s13',zone:'Sud',name:'R-House Design',city:'Mougins',phone:'04 93 90 95 41',email:'contact@r-housedesign.fr',site:'r-housedesign.fr'},
+  {id:'s14',zone:'Sud',name:'Marcoux Mathern & Associés',city:'Cannes',phone:'04 93 30 08 96',email:'contact@marcouxmathern.com',site:'marcouxmathern.com'},
+  {id:'s15',zone:'Sud',name:'IN QUARTO Architecte & Associés',city:'Châteauneuf-Grasse',phone:'04 93 66 38 35',email:'contact@inquartoarchitecte.fr',site:'inquartoarchitecte.fr'},
+  {id:'s16',zone:'Sud',name:'Atelier Architecture Croisette',city:'Mougins',phone:'',email:'info@atelier-ac.fr',site:'atelierarchitecturecroisette.fr'},
+  {id:'s17',zone:'Sud',name:'Fabien Durbano Architecte DPLG',city:'Mougins',phone:'',email:'',site:'fabiendurbano.com'},
+  {id:'s18',zone:'Sud',name:'Vielliard & Francheteau (Nice)',city:'Nice',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
+  {id:'s19',zone:'Sud',name:'Ulysse Géroux + Architects',city:'Nice',phone:'06 15 56 59 86',email:'',site:'ulyssegerouxarchitects.com'},
+  {id:'s20',zone:'Sud',name:'Blue Architecture',city:'Villefranche-sur-Mer',phone:'09 50 30 02 70',email:'bonjour@blue.archi',site:'blue.archi'},
+  {id:'s21',zone:'Sud',name:'Atelier Allione Architectes',city:'Beaulieu-sur-Mer',phone:'',email:'',site:'atelierallione.fr'},
+  {id:'s22',zone:'Sud',name:'Cochet Paîs',city:'Cap d\'Antibes',phone:'',email:'',site:'cochetpais.com'},
+  {id:'s23',zone:'Sud',name:'Daimon Design',city:'Roquebrune-Cap-Martin',phone:'',email:'',site:'daimondesign.com'},
+  {id:'s24',zone:'Sud',name:'DN Architectes',city:'Côte d\'Azur',phone:'',email:'',site:'dnarchitectes.com'},
+  {id:'s25',zone:'Sud',name:'AAGP — Les Ateliers Guillaume Pujol',city:'Aix-en-Provence',phone:'06 24 75 64 94',email:'contact@pujol-archi.com',site:'pujol-archi.com'},
+  {id:'s26',zone:'Sud',name:'Au Temps des Bastides',city:'Éguilles / Pays d\'Aix',phone:'04 42 50 63 28',email:'',site:'autempsdesbastides.com'},
+  {id:'s27',zone:'Sud',name:'Air Architecture',city:'Sud',phone:'',email:'',site:'air-architecture.fr'},
+  {id:'s28',zone:'Sud',name:'Architecture des Caps',city:'Sud',phone:'',email:'',site:'architecturedescaps.fr'},
+  {id:'s29',zone:'Sud',name:'Atelier NB',city:'Sud',phone:'',email:'',site:'atelier-nb.fr'},
+  {id:'s30',zone:'Sud',name:'Cocci\'a',city:'Sud',phone:'',email:'',site:'coccia-architecture.fr'},
+  {id:'s31',zone:'Sud',name:'DMG Architecture',city:'Sud',phone:'',email:'',site:'dmg-architecture.fr'},
+  {id:'s32',zone:'Sud',name:'Emelyne Lavoine',city:'Sud',phone:'',email:'',site:'emelynelavoine.com'},
+  {id:'s33',zone:'Sud',name:'Ever Fair',city:'Sud',phone:'',email:'',site:'everfair.fr'},
+  {id:'s34',zone:'Sud',name:'FX Poudroux Architecte',city:'Sud',phone:'',email:'',site:'fxpoudroux.com'},
+  {id:'s35',zone:'Sud',name:'Jeanne Vieillecroze',city:'Sud',phone:'',email:'',site:'jeannevieillecroze.com'},
+  {id:'s36',zone:'Sud',name:'Julien Rhinn Architecture',city:'Sud',phone:'',email:'',site:'julienrhinn.com'},
+  {id:'s37',zone:'Sud',name:'Krause Architecture',city:'Sud',phone:'',email:'',site:'krause-architecture.fr'},
+  {id:'s38',zone:'Sud',name:'L43 Architecture',city:'Sud',phone:'',email:'',site:'l43architecture.com'},
+  {id:'s39',zone:'Sud',name:'Laurent Moretti Architecte',city:'Sud',phone:'',email:'',site:'laurentmoretti.fr'},
+  {id:'s40',zone:'Sud',name:'Le Ven Design',city:'Sud',phone:'',email:'',site:'levendesign.fr'},
+  {id:'s41',zone:'Sud',name:'Sarich Goujon',city:'Sud',phone:'',email:'',site:'sarichgoujon.com'},
+  {id:'s42',zone:'Sud',name:'Studio Oreka',city:'Sud',phone:'',email:'',site:'studio-oreka.fr'},
+  {id:'s43',zone:'Sud',name:'Studio PVG',city:'Sud',phone:'',email:'',site:'studiopvg.fr'},
+  {id:'x01',zone:'Autres',name:'AAB Arcachon',city:'Arcachon',phone:'',email:'',site:'aab-arcachon.fr'},
+  {id:'x02',zone:'Autres',name:'AFD Architecture Corse',city:'Corse',phone:'',email:'',site:'afd-corse.fr'},
+  {id:'x03',zone:'Autres',name:'Aoda Monaco',city:'Monaco',phone:'',email:'',site:'aoda.mc'},
+  {id:'x04',zone:'Autres',name:'Ksh Design',city:'Paris',phone:'',email:'',site:'kshdesign.fr'},
+  {id:'x05',zone:'Autres',name:'Watt Architecture',city:'Paris',phone:'',email:'',site:'watt-architecture.com'},
+  {id:'x06',zone:'Autres',name:'Xavier Lemoine Architecte',city:'Paris',phone:'',email:'',site:'xavierlemoine.fr'},
+];
+
+// ═══════════════════════════════════════════════════
+// ZONE COLORS
+// ═══════════════════════════════════════════════════
+const ZONE_COLORS = {
+  Lyon:   '#2563eb',
+  Alpes:  '#16a34a',
+  Sud:    '#ea580c',
+  Autres: '#7c3aed',
+};
+const ZONE_BADGE_CSS = {
+  Lyon:   'background:#dbeafe;color:#1d4ed8',
+  Alpes:  'background:#dcfce7;color:#15803d',
+  Sud:    'background:#ffedd5;color:#c2670a',
+  Autres: 'background:#f3e8ff;color:#7c3aed',
+};
+
+// ═══════════════════════════════════════════════════
+// MAP + MARKERS
+// ═══════════════════════════════════════════════════
+let map, allMarkers = [], firestoreData = {};
+let activeZone = 'all', activeSearch = '';
+
+function getCoords(ag) {
+  const c = CITY_COORDS[ag.city];
+  if (c) return c;
+  // Fallback par zone
+  if (ag.zone === 'Lyon')   return [45.7640 + Math.random()*0.05-0.025, 4.8357 + Math.random()*0.05-0.025];
+  if (ag.zone === 'Alpes')  return [45.70   + Math.random()*0.5-0.25,   6.50   + Math.random()*0.5-0.25];
+  if (ag.zone === 'Sud')    return [43.50   + Math.random()*0.5-0.25,   6.50   + Math.random()*0.5-0.25];
+  return [46.0 + Math.random()*2-1, 4.0 + Math.random()*2-1];
+}
+
+function makeIcon(zone, status) {
+  const color = ZONE_COLORS[zone] || '#888';
+  const sColor = ST_COLORS[status] || '#9ca3af';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 26 34">
+    <path d="M13 0C5.82 0 0 5.82 0 13c0 9 13 21 13 21s13-12 13-21C26 5.82 20.18 0 13 0z" fill="${color}" stroke="#fff" stroke-width="2"/>
+    <circle cx="13" cy="13" r="5" fill="${sColor}" stroke="#fff" stroke-width="1.5"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [26, 34],
+    iconAnchor: [13, 34],
+    popupAnchor: [0, -34],
+  });
+}
+
+function popupHtml(ag) {
+  const d = firestoreData[ag.id] || {};
+  const status = d.status || 'nc';
+  const st = STATUSES[status] || STATUSES['nc'];
+  const badgeCss = ZONE_BADGE_CSS[ag.zone] || '';
+  const phoneLink = ag.phone ? `<div class="popup-row">📞 <a href="tel:${ag.phone}">${ag.phone}</a></div>` : '';
+  const mailLink  = ag.email ? `<div class="popup-row">✉ <a href="mailto:${ag.email}" class="mail">${ag.email}</a></div>` : '';
+  const siteLink  = ag.site  ? `<div class="popup-row">🌐 <a href="https://${ag.site}" target="_blank">${ag.site}</a></div>` : '';
+  const noteHtml  = d.notes  ? `<div class="popup-row" style="color:#666;font-style:italic;margin-top:.4rem">${d.notes}</div>` : '';
+  const statusHtml = `<span class="popup-status" style="background:${ST_COLORS[status]}22;color:${ST_COLORS[status]}">${st.label}</span>`;
+  return `
+    <div class="popup-name">${ag.name}</div>
+    <span class="popup-badge" style="${badgeCss}">${ag.zone}</span>
+    <div class="popup-row" style="color:#888">${ag.city}</div>
+    ${phoneLink}${mailLink}${siteLink}${noteHtml}
+    ${statusHtml}
+  `;
+}
+
+function buildMarkers() {
+  allMarkers.forEach(m => m.marker.remove());
+  allMarkers = [];
+
+  // Compteur pour décaler les markers sur la même ville
+  const cityCount = {};
+
+  AGENCIES.forEach(ag => {
+    const coords = getCoords(ag);
+    const key = coords.join(',');
+    cityCount[key] = (cityCount[key] || 0) + 1;
+    const n = cityCount[key];
+    // Offset spiral pour éviter l'empilement
+    const angle = n * 2.4;
+    const r = n > 1 ? (n * 0.0018) : 0;
+    const lat = coords[0] + r * Math.cos(angle);
+    const lng = coords[1] + r * Math.sin(angle);
+
+    const d = firestoreData[ag.id] || {};
+    const status = d.status || 'nc';
+    const marker = L.marker([lat, lng], {icon: makeIcon(ag.zone, status)});
+    marker.bindPopup(popupHtml(ag), {maxWidth: 280});
+    allMarkers.push({marker, ag, lat, lng});
+  });
+
+  applyFilters();
+}
+
+function applyFilters() {
+  let visible = 0;
+  allMarkers.forEach(({marker, ag}) => {
+    const matchZone   = activeZone === 'all' || ag.zone === activeZone;
+    const matchSearch = !activeSearch
+      || ag.name.toLowerCase().includes(activeSearch)
+      || ag.city.toLowerCase().includes(activeSearch);
+    if (matchZone && matchSearch) {
+      marker.addTo(map);
+      visible++;
+    } else {
+      marker.remove();
+    }
+  });
+  document.getElementById('ag-count').textContent = `${visible} agence${visible>1?'s':''} affichée${visible>1?'s':''}`;
+}
+
+function filterZone(zone, btn) {
+  activeZone = zone;
+  document.querySelectorAll('.zone-btn').forEach(b => {
+    b.className = 'zone-btn';
+    if (b === btn) {
+      if (zone==='all')    b.classList.add('active-all');
+      else if (zone==='Lyon')   b.classList.add('active-lyon');
+      else if (zone==='Alpes')  b.classList.add('active-alpes');
+      else if (zone==='Sud')    b.classList.add('active-sud');
+      else b.classList.add('active-autres');
+    }
+  });
+  applyFilters();
+  // Centrer la carte sur la zone
+  const CENTERS = {
+    Lyon:   {latlng:[45.77, 4.85], zoom:12},
+    Alpes:  {latlng:[45.75, 6.55], zoom:9},
+    Sud:    {latlng:[43.50, 6.80], zoom:9},
+    Autres: {latlng:[46.00, 4.00], zoom:5},
+    all:    {latlng:[45.50, 5.50], zoom:7},
+  };
+  const c = CENTERS[zone] || CENTERS.all;
+  map.flyTo(c.latlng, c.zoom, {duration:1.2});
+}
+
+function filterSearch(val) {
+  activeSearch = val.toLowerCase().trim();
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════════
+// LAYOUT
+// ═══════════════════════════════════════════════════
+function adjustLayout() {
+  const h = document.getElementById('fixed-header').offsetHeight;
+  const mapEl = document.getElementById('map-area');
+  mapEl.style.top = h + 'px';
+  if (map) map.invalidateSize();
+}
+window.addEventListener('resize', adjustLayout);
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+async function init() {
+  // Layout
+  adjustLayout();
+  const h = document.getElementById('fixed-header').offsetHeight;
+  document.getElementById('map-area').style.top = h + 'px';
+
+  // Init Leaflet
+  map = L.map('map-area', {zoomControl: true}).setView([45.5, 5.8], 7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 18,
+  }).addTo(map);
+
+  // Légende
+  const legend = L.control({position:'bottomright'});
+  legend.onAdd = function() {
+    const div = L.DomUtil.create('div','map-legend');
+    div.innerHTML = `<b>Zones</b>
+      <div><span class="leg-dot" style="background:#2563eb"></span>Lyon</div>
+      <div><span class="leg-dot" style="background:#16a34a"></span>Alpes</div>
+      <div><span class="leg-dot" style="background:#ea580c"></span>Sud</div>
+      <div><span class="leg-dot" style="background:#7c3aed"></span>Autres</div>
+      <b style="margin-top:.5rem;display:block">Statut (centre)</b>
+      <div><span class="leg-dot" style="background:#9ca3af"></span>Non contacté</div>
+      <div><span class="leg-dot" style="background:#3b82f6"></span>Email envoyé</div>
+      <div><span class="leg-dot" style="background:#f59e0b"></span>Relance 1</div>
+      <div><span class="leg-dot" style="background:#10b981"></span>Stage obtenu ✓</div>`;
+    return div;
+  };
+  legend.addTo(map);
+
+  // Charger statuts Firestore
+  try {
+    const snap = await db.collection('prospection').get();
+    snap.forEach(doc => { firestoreData[doc.id] = doc.data(); });
+  } catch(e) { console.warn('Firebase indisponible:', e); }
+
+  // Masquer loading + construire markers
+  document.getElementById('loading-screen').style.display = 'none';
+  buildMarkers();
+  adjustLayout();
+}
+
+init();
+</script>
+</body>
+</html>

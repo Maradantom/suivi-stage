@@ -48,7 +48,7 @@
     .btn-add{background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:.4rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer;transition:background .15s}
     .btn-add:hover{background:#6d28d9}
     /* TABLE WRAPPER */
-    .tbl-wrap{margin:0 1.5rem 2rem;min-width:900px}
+    .tbl-wrap{margin:0 1.5rem 2rem;min-width:1350px}
     table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07)}
     thead{position:sticky;top:0;z-index:10;background:#1a1a1a;color:#fff}
     th{padding:.75rem .8rem;text-align:left;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;cursor:pointer;user-select:none}
@@ -93,7 +93,9 @@
     a.tel-lnk:hover{text-decoration:underline}
     a.mail-lnk{color:#7c3aed;text-decoration:none;font-size:.78rem}
     a.mail-lnk:hover{text-decoration:underline}
-    .contact-cell{display:flex;flex-direction:column;gap:5px}
+    td.addr-td{color:#888;font-size:.75rem;min-width:140px;max-width:200px}
+    td.phone-td{white-space:nowrap;min-width:115px}
+    td.email-td{min-width:180px}
     /* RELANCE BTN */
     .btn-relance{border:none;background:#f0fdf4;color:#15803d;border-radius:5px;padding:.18rem .45rem;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap}
     .btn-relance:hover{background:#dcfce7}
@@ -252,12 +254,14 @@
     <table id="main-table">
       <thead>
         <tr>
-          <th style="width:30px">#</th>
+          <th style="width:28px">#</th>
           <th onclick="sortBy('prio')" title="Trier par priorité">⭐</th>
           <th onclick="sortBy('name')">Agence ↕</th>
           <th onclick="sortBy('zone')">Zone ↕</th>
-          <th>Ville</th>
-          <th>Coordonnées</th>
+          <th onclick="sortBy('city')">Ville ↕</th>
+          <th>Adresse précise</th>
+          <th>Téléphone</th>
+          <th>Email</th>
           <th>Site</th>
           <th onclick="sortBy('status')">Statut ↕</th>
           <th onclick="sortBy('contact')">Date contact ↕</th>
@@ -265,7 +269,9 @@
           <th class="notes-td">Notes</th>
         </tr>
       </thead>
-      <tbody id="tbody"></tbody>
+      <tbody id="tbody">
+        <!-- rows injected by JS -->
+      </tbody>
     </table>
     <div id="empty-state">Aucune agence ne correspond aux filtres sélectionnés.</div>
   </div>
@@ -433,6 +439,52 @@ const AGENCIES = [
   {id:'x05',zone:'Autres',name:'Watt Architecture',city:'Paris',phone:'',email:'',site:'watt-architecture.com'},
   {id:'x06',zone:'Autres',name:'Xavier Lemoine Architecte',city:'Paris',phone:'',email:'',site:'xavierlemoine.fr'},
 ];
+
+// ═══════════════════════════════════════════════════
+// ADRESSES PRÉCISES (à compléter au fur et à mesure)
+// ═══════════════════════════════════════════════════
+const ADDRESSES = {
+  // LYON
+  l01: '10 Cours Émile Zola, 69100 Villeurbanne',
+  l03: '4 Montée du Château, 69410 Champagne-au-Mont-d\'Or',
+  l04: '68 Cours Gambetta, 69003 Lyon',
+  l06: '7 Rue Diderot, 69004 Lyon',
+  l07: '19 Rue de la Barre, 69001 Lyon',
+  l08: '14 Rue Mercière, 69001 Lyon',
+  l09: '37 Rue du Président Édouard Herriot, 69006 Lyon',
+  l10: '12 Rue d\'Anvers, 69007 Lyon',
+  l11: '5 Place Valmy, 69009 Lyon',
+  l13: '6 Rue des Marronniers, 69005 Lyon',
+  l14: '18 Rue du Bât-d\'Argent, 69001 Lyon',
+  l16: '20 Quai Gailleton, 69002 Lyon',
+  l18: '32 Rue de la République, 69001 Lyon',
+  l19: '8 Rue de la Part-Dieu, 69003 Lyon',
+  // ALPES
+  a01: 'Route du Port, 74290 Menthon-Saint-Bernard',
+  a02: 'Chef-lieu, 74290 Talloires',
+  a03: '18 Avenue de Lyon, 73000 Chambéry',
+  a06: '12 Faubourg des Balmettes, 74000 Annecy',
+  a11: '66 Rue Charles Feige, 74120 Megève',
+  a12: 'Route Nationale, 74120 Megève',
+  a13: '63 Route de Megève, 74920 Combloux',
+  a14: '74 Rue des Moulins, 74400 Chamonix',
+  a18: '18 Rue de la République, 73600 Moûtiers',
+  // SUD
+  s01: 'Quai Jean Jaurès, 83990 Saint-Tropez',
+  s02: 'Route de Ramatuelle, 83580 Gassin',
+  s03: 'Place du Marché, 83310 Port Grimaud',
+  s06: '3 Bd de la Libération, 83700 Saint-Raphaël',
+  s08: '18 Rue des Frères Montgolfier, 83600 Fréjus',
+  s09: '12 Avenue Maréchal Juin, 83160 La Valette-du-Var',
+  s10: '8 Bd de la Ciotat, 83140 Six-Fours-les-Plages',
+  s13: '340 Avenue de la Californie, 06210 Mougins',
+  s14: '4 Rue du Commandant André, 06400 Cannes',
+  s15: '12 Route de Grasse, 06740 Châteauneuf-Grasse',
+  s20: '1 Bd de la Corniches, 06230 Villefranche-sur-Mer',
+  s25: '25 Cours Mirabeau, 13100 Aix-en-Provence',
+  // AUTRES
+  x03: 'Quartier Fontvieille, 98000 Monaco',
+};
 
 // ═══════════════════════════════════════════════════
 // MAIL TEMPLATE
@@ -670,7 +722,8 @@ function getFiltered() {
   return AGENCIES.filter(ag => {
     const e = getEntry(ag.id);
     if (zf && ag.zone !== zf) return false;
-    if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf)) return false;
+    const addr = (ADDRESSES[ag.id]||'').toLowerCase();
+    if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf) && !addr.includes(sf)) return false;
     if (activeFilter === 'prio') return e.prio;
     if (activeFilter !== 'all' && e.status !== activeFilter) return false;
     return true;
@@ -686,6 +739,7 @@ function renderTable() {
       let va, vb;
       if (sortKey === 'name')    { va = a.name; vb = b.name; }
       else if (sortKey === 'zone')   { va = a.zone; vb = b.zone; }
+      else if (sortKey === 'city')   { va = a.city; vb = b.city; }
       else if (sortKey === 'status') { va = getEntry(a.id).status; vb = getEntry(b.id).status; }
       else if (sortKey === 'contact'){ va = getEntry(a.id).contactDate||''; vb = getEntry(b.id).contactDate||''; }
       else if (sortKey === 'relance'){ va = getEntry(a.id).relanceDate||''; vb = getEntry(b.id).relanceDate||''; }
@@ -706,15 +760,14 @@ function renderTable() {
     const tr = document.createElement('tr');
     if (overdue) tr.classList.add('overdue');
 
-    // Colonne coordonnées : téléphone + email séparés
-    const contactParts = [];
-    if (ag.phone) contactParts.push(`<a class="tel-lnk" href="tel:${ag.phone}">📞 ${ag.phone}</a>`);
-    if (ag.email) {
-      const href = makeMailto(ag);
-      contactParts.push(`<a class="mail-lnk" href="${href}" title="Ouvrir avec modèle de lettre">📧 ${ag.email}</a>`);
-    }
-    if (!ag.phone && !ag.email) contactParts.push('<span style="color:#ccc;font-size:.72rem">Formulaire site</span>');
-    const contactCell = contactParts;
+    // Colonnes séparées : adresse / téléphone / email
+    const adresse = ADDRESSES[ag.id] || '';
+    const phoneHtml = ag.phone
+      ? `<a class="tel-lnk" href="tel:${ag.phone}">${ag.phone}</a>`
+      : '<span style="color:#ddd;font-size:.72rem">—</span>';
+    const emailHtml = ag.email
+      ? `<a class="mail-lnk" href="${makeMailto(ag)}" title="Ouvrir avec modèle de lettre">✉ ${ag.email}</a>`
+      : '<span style="color:#ddd;font-size:.72rem">—</span>';
 
     const statusOpts = Object.entries(STATUSES).map(([k,v]) =>
       `<option value="${k}" ${e.status===k?'selected':''}>${v.label}</option>`
@@ -727,8 +780,10 @@ function renderTable() {
       <td style="text-align:center"><span class="star ${e.prio?'on':''}" data-id="${ag.id}" onclick="togglePrio('${ag.id}',this)">★</span></td>
       <td style="font-weight:600;min-width:160px">${ag.name}</td>
       <td>${zoneBadge(ag.zone)}</td>
-      <td style="color:#666;white-space:nowrap">${ag.city}</td>
-      <td><div class="contact-cell">${contactCell.join('')}</div></td>
+      <td style="color:#555;white-space:nowrap;font-size:.78rem">${ag.city}</td>
+      <td class="addr-td">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
+      <td class="phone-td">${phoneHtml}</td>
+      <td class="email-td">${emailHtml}</td>
       <td><a class="site-lnk" href="https://${ag.site}" target="_blank">${ag.site}</a></td>
       <td>
         <select class="status-sel ${st.cls}" data-id="${ag.id}" onchange="changeStatus('${ag.id}',this)">
