@@ -93,7 +93,7 @@
     a.tel-lnk:hover{text-decoration:underline}
     a.mail-lnk{color:#7c3aed;text-decoration:none;font-size:.78rem}
     a.mail-lnk:hover{text-decoration:underline}
-    .contact-cell{display:flex;flex-direction:column;gap:2px}
+    .contact-cell{display:flex;flex-direction:column;gap:5px}
     /* RELANCE BTN */
     .btn-relance{border:none;background:#f0fdf4;color:#15803d;border-radius:5px;padding:.18rem .45rem;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap}
     .btn-relance:hover{background:#dcfce7}
@@ -200,9 +200,9 @@
 
 <div id="fixed-header">
   <nav>
-    <a href="agences.html">📋 Annuaire agences</a>
-    <a href="suivi_firebase.html" class="active">📊 Tableau de suivi</a>
-    <a href="modele-mail.html">✉ Modèle mail</a>
+    <a href="carte.html">🗺️ Carte</a>
+    <a href="index.html" class="active">📊 Tableau de suivi</a>
+    <a href="modele-mail.html">📧 Modèle mail</a>
   </nav>
 
   <div class="hdr">
@@ -706,14 +706,15 @@ function renderTable() {
     const tr = document.createElement('tr');
     if (overdue) tr.classList.add('overdue');
 
-    // Colonne coordonnées : téléphone + email (avec mailto pré-rempli si template)
-    const contactCell = [];
-    if (ag.phone) contactCell.push(`<a class="tel-lnk" href="tel:${ag.phone}">${ag.phone}</a>`);
+    // Colonne coordonnées : téléphone + email séparés
+    const contactParts = [];
+    if (ag.phone) contactParts.push(`<a class="tel-lnk" href="tel:${ag.phone}">📞 ${ag.phone}</a>`);
     if (ag.email) {
       const href = makeMailto(ag);
-      contactCell.push(`<a class="mail-lnk" href="${href}" title="Ouvrir avec modèle de lettre">✉ ${ag.email}</a>`);
+      contactParts.push(`<a class="mail-lnk" href="${href}" title="Ouvrir avec modèle de lettre">📧 ${ag.email}</a>`);
     }
-    if (!ag.phone && !ag.email) contactCell.push('<span style="color:#ccc;font-size:.72rem">Formulaire site</span>');
+    if (!ag.phone && !ag.email) contactParts.push('<span style="color:#ccc;font-size:.72rem">Formulaire site</span>');
+    const contactCell = contactParts;
 
     const statusOpts = Object.entries(STATUSES).map(([k,v]) =>
       `<option value="${k}" ${e.status===k?'selected':''}>${v.label}</option>`
