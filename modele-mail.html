@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modèle mail — Stage Architecture</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden}
+    body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f4f1;color:#1a1a1a;font-size:13px;display:flex;flex-direction:column}
+
+    /* FIXED HEADER */
+    #fixed-header{position:fixed;top:0;left:0;right:0;z-index:100}
+
+    /* SCROLL AREA */
+    #scroll-area{position:fixed;left:0;right:0;bottom:0;overflow-y:auto;background:#f5f4f1}
+
+    /* NAV */
+    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333}
+    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s}
+    nav a:hover,nav a.active{background:#fff;color:#111}
+
+    /* HEADER */
+    .hdr{background:#1a1a1a;color:#fff;padding:1.5rem 1.5rem 1.2rem;border-bottom:1px solid #333}
+    .hdr h1{font-size:1.2rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .hdr p{margin-top:.25rem;font-size:.78rem;color:#888}
+
+    /* LOADING */
+    #loading-screen{position:fixed;inset:0;background:#1a1a1a;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#fff}
+    #loading-screen h2{font-size:1rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#888}
+    .spinner{width:36px;height:36px;border:3px solid #333;border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* CONTENT */
+    .page-wrap{max-width:780px;margin:2rem auto;padding:0 1.5rem 4rem}
+
+    /* CARD */
+    .card{background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.08);padding:1.75rem;margin-bottom:1.5rem}
+    .card h2{font-size:.9rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1.2rem;color:#1a1a1a}
+
+    /* TEXTAREA */
+    #template-ta{width:100%;min-height:380px;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;font-family:'Segoe UI',system-ui,sans-serif;font-size:.82rem;line-height:1.7;color:#1a1a1a;background:#fafaf8;resize:vertical}
+    #template-ta:focus{outline:none;border-color:#7c3aed;background:#fff}
+
+    /* VARIABLES INFO */
+    .var-list{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.75rem}
+    .var-tag{background:#f3e8ff;color:#7c3aed;border-radius:6px;padding:.3rem .7rem;font-size:.75rem;font-weight:700;font-family:'Courier New',monospace;cursor:help}
+
+    /* PREVIEW */
+    .preview-wrap{background:#fafaf8;border:1px solid #e0e0e0;border-radius:8px;padding:1rem;font-size:.82rem;line-height:1.7;white-space:pre-wrap;color:#444;min-height:100px}
+
+    /* ACTIONS */
+    .actions{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;margin-top:1.2rem}
+    .btn{border:none;border-radius:7px;padding:.5rem 1.2rem;font-size:.82rem;font-weight:700;cursor:pointer;transition:background .15s}
+    .btn-save{background:#7c3aed;color:#fff}.btn-save:hover{background:#6d28d9}
+    .btn-reset{background:transparent;border:1px solid #ccc;color:#666}.btn-reset:hover{border-color:#1a1a1a;color:#1a1a1a}
+    #status-msg{font-size:.78rem;font-weight:600;opacity:0;transition:opacity .4s;margin-left:.5rem}
+    #status-msg.show{opacity:1}
+    #status-msg.ok{color:#15803d}
+    #status-msg.err{color:#dc2626}
+
+    /* MOBILE */
+    @media(max-width:700px){
+      .hdr{display:none}
+      nav a{padding:.55rem .9rem;font-size:.72rem}
+      .page-wrap{margin:1rem auto;padding:0 .75rem 3rem}
+      #template-ta{min-height:260px}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <h2>Connexion à Firebase…</h2>
+</div>
+
+<div id="fixed-header">
+  <nav>
+    <a href="agences.html">📋 Annuaire agences</a>
+    <a href="suivi_firebase.html">📊 Tableau de suivi</a>
+    <a href="modele-mail.html" class="active">✉ Modèle mail</a>
+  </nav>
+  <div class="hdr">
+    <h1>✉ Modèle de lettre de motivation</h1>
+    <p>Ce texte sera automatiquement intégré quand vous cliquez sur un email dans le tableau de suivi</p>
+  </div>
+</div>
+
+<div id="scroll-area">
+  <div class="page-wrap">
+
+    <!-- ÉDITEUR -->
+    <div class="card">
+      <h2>✏️ Votre lettre</h2>
+      <textarea id="template-ta" placeholder="Rédigez votre lettre de motivation ici…" spellcheck="true"></textarea>
+
+      <!-- Variables disponibles -->
+      <p style="font-size:.75rem;color:#888;margin-top:.9rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Variables remplacées automatiquement :</p>
+      <div class="var-list">
+        <span class="var-tag" title="Remplacé par le nom de l'agence">{{agence}}</span>
+        <span class="var-tag" title="Remplacé par la ville de l'agence">{{ville}}</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-save" onclick="saveTemplate()">💾 Sauvegarder</button>
+        <button class="btn btn-reset" onclick="resetTemplate()">↺ Remettre le modèle par défaut</button>
+        <span id="status-msg"></span>
+      </div>
+    </div>
+
+    <!-- APERÇU -->
+    <div class="card">
+      <h2>👁 Aperçu — exemple avec "Atelier Dupont" à Lyon</h2>
+      <div class="preview-wrap" id="preview"></div>
+    </div>
+
+    <!-- INSTRUCTIONS -->
+    <div class="card" style="background:#f9f5ff;border:1px solid #e9d5ff">
+      <h2 style="color:#7c3aed">💡 Comment ça fonctionne</h2>
+      <p style="font-size:.82rem;line-height:1.7;color:#555;margin-top:.5rem">
+        Dans le <strong>tableau de suivi</strong>, cliquez sur l'adresse email d'une agence (en violet).<br>
+        Votre messagerie s'ouvre automatiquement avec :<br>
+        — l'objet déjà rempli : <em>"Candidature stage architecture — Tom Maradan"</em><br>
+        — ce texte pré-rempli, avec <code style="background:#ede9fe;padding:.1rem .3rem;border-radius:4px;color:#7c3aed">{{agence}}</code> remplacé par le nom réel de l'agence<br>
+        — et <code style="background:#ede9fe;padding:.1rem .3rem;border-radius:4px;color:#7c3aed">{{ville}}</code> remplacé par la ville.<br><br>
+        Il ne vous reste plus qu'à <strong>joindre votre CV et envoyer</strong> !
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// LAYOUT
+// ═══════════════════════════════════════════════════
+function adjustLayout() {
+  const h = document.getElementById('fixed-header').offsetHeight;
+  document.getElementById('scroll-area').style.top = h + 'px';
+}
+window.addEventListener('resize', adjustLayout);
+
+// ═══════════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBob3K6q2ntwOGGE8GylgqvRjPsZ95ArYc",
+  authDomain: "stage-read.firebaseapp.com",
+  projectId: "stage-read",
+  storageBucket: "stage-read.firebasestorage.app",
+  messagingSenderId: "943341224332",
+  appId: "1:943341224332:web:d5232d5cb7713707b616a9"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ═══════════════════════════════════════════════════
+// MODÈLE PAR DÉFAUT
+// ═══════════════════════════════════════════════════
+const DEFAULT_TEMPLATE = `Madame, Monsieur,
+
+Étudiant en 4ème année d'école d'architecture à CREAD Lyon, je souhaite découvrir un cabinet d'architecture qui réalise des projets haut de gamme.
+J'aimerais intégrer {{agence}} dans le cadre d'un stage de deux mois, du 26 mai au 18 juillet 2025.
+
+J'ai particulièrement apprécié votre approche globale et vision de l'architecture, ainsi que vos réalisations sur-mesure.
+
+Durant ma formation, j'ai développé des compétences en conception de projets, modélisation 3D (SketchUp, AutoCAD) et présentation graphique (Indesign, Photoshop). Curieux et motivé, je suis attiré par les projets créatifs qui répondent aussi aux besoins fonctionnels des clients.
+
+Travailler à vos côtés me permettrait de mieux comprendre le quotidien en agence et de participer aux différentes étapes d'un projet architectural. Je serais ravi de vous aider dans la réalisation de plans ou de 3D. Je suis prêt à m'investir pleinement dans les missions qui me seront confiées, tout en apportant ma rigueur et ma volonté d'apprendre.
+
+Je serais heureux de vous présenter mon portfolio lors d'un entretien. (https://Portfolio-Tom-Maradan) et reste à votre disposition pour échanger davantage sur mes motivations.
+Je vous remercie de l'attention que vous porterez à ma candidature.
+
+Dans l'attente de votre retour,
+Cordialement,
+
+Tom Maradan
+06 72 25 67 83
+maradantom@gmail.com
+Portfolio : https://Portfolio-Tom-Maradan`;
+
+// ═══════════════════════════════════════════════════
+// PREVIEW
+// ═══════════════════════════════════════════════════
+function updatePreview() {
+  const tpl = document.getElementById('template-ta').value;
+  const preview = tpl
+    .replace(/\{\{agence\}\}/g, 'Atelier Dupont')
+    .replace(/\{\{ville\}\}/g, 'Lyon');
+  document.getElementById('preview').textContent = preview;
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE
+// ═══════════════════════════════════════════════════
+async function saveTemplate() {
+  const tpl = document.getElementById('template-ta').value.trim();
+  const msg = document.getElementById('status-msg');
+  try {
+    await db.collection('settings').doc('mail').set({template: tpl}, {merge: true});
+    msg.textContent = '✓ Sauvegardé !';
+    msg.className = 'show ok';
+    setTimeout(() => msg.className = '', 2500);
+  } catch(e) {
+    console.error(e);
+    msg.textContent = '⚠️ Erreur de sauvegarde';
+    msg.className = 'show err';
+    setTimeout(() => msg.className = '', 3000);
+  }
+}
+
+function resetTemplate() {
+  if (!confirm('Remettre le modèle par défaut ? Votre texte actuel sera perdu.')) return;
+  document.getElementById('template-ta').value = DEFAULT_TEMPLATE;
+  updatePreview();
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+async function init() {
+  try {
+    const doc = await db.collection('settings').doc('mail').get();
+    const tpl = (doc.exists && doc.data().template) ? doc.data().template : DEFAULT_TEMPLATE;
+    document.getElementById('template-ta').value = tpl;
+    updatePreview();
+    document.getElementById('loading-screen').style.display = 'none';
+    adjustLayout();
+  } catch(e) {
+    console.error(e);
+    document.getElementById('template-ta').value = DEFAULT_TEMPLATE;
+    updatePreview();
+    document.getElementById('loading-screen').style.display = 'none';
+    adjustLayout();
+  }
+}
+
+document.getElementById('template-ta').addEventListener('input', updatePreview);
+init();
+</script>
+</body>
+</html>

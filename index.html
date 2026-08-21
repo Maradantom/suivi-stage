@@ -4,14 +4,13 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Suivi Prospection — Stage Architecture</title>
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;overflow:hidden}
     body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f5f4f1;color:#1a1a1a;font-size:13px;display:flex;flex-direction:column}
-    /* FIXED HEADER CONTAINER */
+    /* FIXED HEADER */
     #fixed-header{position:fixed;top:0;left:0;right:0;z-index:100}
     /* SCROLL AREA */
     #scroll-area{position:fixed;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:auto;background:#f5f4f1}
@@ -46,6 +45,8 @@
     .btn{border:none;border-radius:6px;padding:.4rem 1rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .15s}
     .btn-dark{background:#1a1a1a;color:#fff}.btn-dark:hover{background:#333}
     .btn-outline{background:transparent;border:1px solid #ccc;color:#555}.btn-outline:hover{border-color:#1a1a1a;color:#1a1a1a}
+    .btn-add{background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:.4rem .9rem;font-size:.78rem;font-weight:700;cursor:pointer;transition:background .15s}
+    .btn-add:hover{background:#6d28d9}
     /* TABLE WRAPPER */
     .tbl-wrap{margin:0 1.5rem 2rem;min-width:900px}
     table{width:100%;border-collapse:collapse;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.07)}
@@ -56,11 +57,12 @@
     tr:last-child td{border-bottom:none}
     tr:hover td{background:#fafafa}
     tr.overdue td{background:#fff5f5}
-    /* ZONE BADGE */
+    /* ZONE BADGES */
     .badge{font-size:.65rem;font-weight:700;padding:.18rem .45rem;border-radius:12px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
     .b-lyon{background:#dbeafe;color:#1d4ed8}
     .b-alpes{background:#dcfce7;color:#15803d}
     .b-sud{background:#ffedd5;color:#c2670a}
+    .b-autres{background:#f3e8ff;color:#7c3aed}
     /* STATUS */
     select.status-sel{border:none;border-radius:6px;padding:.25rem .5rem;font-size:.75rem;font-weight:600;cursor:pointer;width:130px}
     .s-nc{background:#f3f4f6;color:#6b7280}
@@ -80,7 +82,7 @@
     td.notes-td{min-width:150px;max-width:220px}
     textarea.note-ta{border:1px solid #e5e5e5;border-radius:6px;padding:.25rem .4rem;font-size:.75rem;color:#1a1a1a;background:#fff;width:100%;min-height:32px;resize:vertical;font-family:inherit}
     textarea.note-ta:focus{outline:none;border-color:#1a1a1a}
-    /* STARS / PRIORITY */
+    /* STARS */
     .star{cursor:pointer;font-size:1rem;color:#ddd;transition:color .1s}
     .star.on{color:#f59e0b}
     .star:hover{color:#f59e0b}
@@ -89,60 +91,60 @@
     a.site-lnk:hover{text-decoration:underline}
     a.tel-lnk{color:#1a1a1a;text-decoration:none}
     a.tel-lnk:hover{text-decoration:underline}
+    a.mail-lnk{color:#7c3aed;text-decoration:none;font-size:.78rem}
+    a.mail-lnk:hover{text-decoration:underline}
     .contact-cell{display:flex;flex-direction:column;gap:2px}
     /* RELANCE BTN */
     .btn-relance{border:none;background:#f0fdf4;color:#15803d;border-radius:5px;padding:.18rem .45rem;font-size:.72rem;font-weight:600;cursor:pointer;white-space:nowrap}
     .btn-relance:hover{background:#dcfce7}
-    /* SAVED INDICATOR */
+    /* SAVED / SYNC */
     #save-ind{font-size:.72rem;color:#15803d;font-weight:600;opacity:0;transition:opacity .4s}
-    /* SYNC INDICATOR */
     #sync-ind{font-size:.72rem;color:#6b7280;margin-left:auto}
     /* EMPTY STATE */
     #empty-state{text-align:center;padding:3rem;color:#aaa;display:none}
     /* EXPORT */
     #export-btn{margin-left:auto}
 
-    /* ═══════════════════════════════════════════
+    /* ══════════════════════════════
+       MODAL AJOUT AGENCE
+    ══════════════════════════════ */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem}
+    .modal-overlay.hidden{display:none}
+    .modal{background:#fff;border-radius:12px;padding:1.75rem;width:100%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+    .modal h2{font-size:1rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1.2rem}
+    .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .modal-grid .full{grid-column:1/-1}
+    .modal label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#666;display:block;margin-bottom:.25rem}
+    .modal input,.modal select{width:100%;border:1px solid #ddd;border-radius:7px;padding:.5rem .7rem;font-size:.82rem;color:#1a1a1a;background:#fff}
+    .modal input:focus,.modal select:focus{outline:none;border-color:#7c3aed}
+    .modal-actions{margin-top:1.2rem;display:flex;gap:.6rem;justify-content:flex-end}
+
+    /* ══════════════════════════════
        RESPONSIVE MOBILE
-    ═══════════════════════════════════════════ */
+    ══════════════════════════════ */
     @media (max-width:700px){
-      /* Masquer le titre — inutile sur mobile */
       .hdr{display:none}
-
-      /* Nav compact */
       nav a{padding:.55rem .9rem;font-size:.72rem;letter-spacing:.02em}
-
-      /* Stats bar: scroll horizontal, no wrap */
       .stats-bar{flex-wrap:nowrap;overflow-x:auto;padding:.45rem .75rem;gap:.55rem;-webkit-overflow-scrolling:touch;scrollbar-width:none}
       .stats-bar::-webkit-scrollbar{display:none}
-      .stats-bar>span:first-child{display:none} /* cache "Filtrer :" */
+      .stats-bar>span:first-child{display:none}
       #save-ind,#sync-ind{white-space:nowrap;flex-shrink:0}
-
-      /* Stat pills compact */
       .stat-pill{padding:.22rem .55rem;font-size:.68rem;white-space:nowrap;flex-shrink:0}
       .stat-pill .num{font-size:.85rem}
-
-      /* Controls compact */
       .controls{padding:.45rem .75rem;gap:.35rem}
       label.ctrl-lbl{display:none}
       .controls input{width:120px}
       #export-btn{margin-left:0}
-
-      /* Table: pas de marges latérales */
       .tbl-wrap{margin:0 0 2rem}
-
-      /* Table text plus petit */
       th{font-size:.62rem;padding:.55rem .4rem}
       td{font-size:.7rem;padding:.4rem .4rem}
       input.date-in{width:95px;font-size:.68rem}
       select.status-sel{width:110px;font-size:.68rem}
       textarea.note-ta{min-height:28px;font-size:.68rem}
-
-      /* Touch scroll for scroll-area */
       #scroll-area{-webkit-overflow-scrolling:touch}
-
-      /* Alert compact */
       .alert{padding:.5rem .75rem;font-size:.75rem}
+      .modal-grid{grid-template-columns:1fr}
+      .modal-grid .full{grid-column:1}
     }
   </style>
 </head>
@@ -154,10 +156,53 @@
   <h2>Connexion à Firebase…</h2>
 </div>
 
+<!-- MODAL AJOUT AGENCE -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2>➕ Ajouter une agence</h2>
+    <div class="modal-grid">
+      <div class="full">
+        <label>Nom de l'agence *</label>
+        <input type="text" id="m-name" placeholder="Ex : Atelier Dupont"/>
+      </div>
+      <div>
+        <label>Zone *</label>
+        <select id="m-zone">
+          <option value="Lyon">Lyon</option>
+          <option value="Alpes">Alpes</option>
+          <option value="Sud">Sud</option>
+          <option value="Autres">Autres</option>
+        </select>
+      </div>
+      <div>
+        <label>Ville</label>
+        <input type="text" id="m-city" placeholder="Ex : Lyon 6e"/>
+      </div>
+      <div>
+        <label>Téléphone</label>
+        <input type="tel" id="m-phone" placeholder="Ex : 04 72 00 00 00"/>
+      </div>
+      <div>
+        <label>Email</label>
+        <input type="email" id="m-email" placeholder="contact@agence.fr"/>
+      </div>
+      <div class="full">
+        <label>Site web</label>
+        <input type="text" id="m-site" placeholder="agence.fr (sans https://)"/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn-add" onclick="saveCustomAgency()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
 <div id="fixed-header">
   <nav>
     <a href="agences.html">📋 Annuaire agences</a>
     <a href="suivi_firebase.html" class="active">📊 Tableau de suivi</a>
+    <a href="modele-mail.html">✉ Modèle mail</a>
   </nav>
 
   <div class="hdr">
@@ -165,15 +210,13 @@
     <p>Données synchronisées en temps réel via Firebase — accessibles depuis tous vos appareils</p>
   </div>
 
-  <!-- ALERT RELANCES -->
   <div class="alert" id="alert-bar">
     ⚠️ <strong id="alert-msg"></strong> — pensez à les relancer aujourd'hui !
   </div>
 
-  <!-- STATS / FILTERS PILLS -->
   <div class="stats-bar">
     <span style="font-size:.72rem;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Filtrer :</span>
-    <div class="stat-pill active" data-filter="all"><span class="num" id="cnt-all">71</span>&nbsp;Toutes</div>
+    <div class="stat-pill active" data-filter="all"><span class="num" id="cnt-all">—</span>&nbsp;Toutes</div>
     <div class="stat-pill" data-filter="nc"><span class="num" id="cnt-nc">—</span>&nbsp;Non contacté</div>
     <div class="stat-pill" data-filter="em"><span class="num" id="cnt-em">—</span>&nbsp;Envoyé</div>
     <div class="stat-pill" data-filter="r1"><span class="num" id="cnt-r1">—</span>&nbsp;Relance 1</div>
@@ -186,7 +229,6 @@
     <span id="sync-ind">🔄 Firebase</span>
   </div>
 
-  <!-- CONTROLS -->
   <div class="controls">
     <label class="ctrl-lbl">Zone</label>
     <select id="zone-filter">
@@ -194,24 +236,24 @@
       <option value="Lyon">Lyon</option>
       <option value="Alpes">Alpes</option>
       <option value="Sud">Sud</option>
+      <option value="Autres">Autres</option>
     </select>
     <label class="ctrl-lbl">Recherche</label>
     <input type="text" id="search" placeholder="Nom, ville, site..."/>
     <button class="btn btn-dark" onclick="resetAllFilters()">↺ Tout afficher</button>
     <button class="btn btn-outline" onclick="setRelanceDates()">📅 Auto-relances</button>
+    <button class="btn-add" onclick="openModal()">➕ Ajouter</button>
     <button class="btn btn-outline" id="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
   </div>
-</div><!-- /#fixed-header -->
+</div>
 
-<!-- SCROLL AREA — seules les lignes de données défilent -->
 <div id="scroll-area">
-  <!-- TABLE -->
   <div class="tbl-wrap">
     <table id="main-table">
       <thead>
         <tr>
           <th style="width:30px">#</th>
-          <th onclick="sortBy('prio')" title="Cliquer pour trier">⭐</th>
+          <th onclick="sortBy('prio')" title="Trier par priorité">⭐</th>
           <th onclick="sortBy('name')">Agence ↕</th>
           <th onclick="sortBy('zone')">Zone ↕</th>
           <th>Ville</th>
@@ -227,11 +269,11 @@
     </table>
     <div id="empty-state">Aucune agence ne correspond aux filtres sélectionnés.</div>
   </div>
-</div><!-- /#scroll-area -->
+</div>
 
 <script>
 // ═══════════════════════════════════════════════════
-// LAYOUT — ajuster le top du scroll-area selon la hauteur du header fixe
+// LAYOUT
 // ═══════════════════════════════════════════════════
 function adjustLayout() {
   const h = document.getElementById('fixed-header').offsetHeight;
@@ -255,10 +297,10 @@ const db = firebase.firestore();
 const COL = 'prospection';
 
 // ═══════════════════════════════════════════════════
-// DATA — 71 agences
+// AGENCES — 128 au total
 // ═══════════════════════════════════════════════════
 const AGENCIES = [
-  // ZONE LYON (21)
+  // ── ZONE LYON (41) ──────────────────────────────
   {id:'l01',zone:'Lyon',name:'Résidences de Prestige by CV',city:'Villeurbanne',phone:'04 69 00 11 49',email:'contact@residenceprestige.com',site:'residenceprestige.com'},
   {id:'l02',zone:'Lyon',name:'Vielliard & Francheteau Architectures',city:'Écully',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
   {id:'l03',zone:'Lyon',name:'Laurent Guillaud-Lozanne',city:'Champagne-au-Mont-d\'Or',phone:'04 28 29 15 29',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
@@ -270,7 +312,7 @@ const AGENCIES = [
   {id:'l09',zone:'Lyon',name:'ARCH2L',city:'Lyon 6e',phone:'04 12 16 08 51',email:'contact@arch2l.fr',site:'arch2l.fr'},
   {id:'l10',zone:'Lyon',name:'Christophe Sarlandie',city:'Lyon 7e',phone:'07 64 07 90 87',email:'atelier@christophesarlandie.com',site:'christophesarlandie.com'},
   {id:'l11',zone:'Lyon',name:'Studio Ladoit',city:'Lyon 9e',phone:'06 28 54 08 56',email:'margaux@studio-ladoit.fr',site:'studio-ladoit.fr'},
-  {id:'l12',zone:'Lyon',name:'BY|YB — Yves Bonnici',city:'Bron',phone:'',email:'',site:'byyb-adc.com'},
+  {id:'l12',zone:'Lyon',name:'BY|YB — Yves Bonnici',city:'Bron',phone:'',email:'yves.bonnici@byyb-adc.com',site:'byyb-adc.com'},
   {id:'l13',zone:'Lyon',name:'HAVAH',city:'Lyon 5e',phone:'04 72 70 52 69',email:'contact@havah.archi',site:'havah.fr'},
   {id:'l14',zone:'Lyon',name:'Atelier OCTA',city:'Lyon 1er',phone:'04 28 29 60 66',email:'contact@atelier-octa.fr',site:'atelier-octa.fr'},
   {id:'l15',zone:'Lyon',name:'DEVARAN Architecture & Design',city:'Lyon 6e',phone:'',email:'',site:'devaran.fr'},
@@ -280,7 +322,27 @@ const AGENCIES = [
   {id:'l19',zone:'Lyon',name:'Studio Anata',city:'Lyon 3e',phone:'06 08 13 40 12',email:'contact@studioanata.com',site:'studioanata.com'},
   {id:'l20',zone:'Lyon',name:'Aproplac',city:'Saint-Genis-Laval',phone:'04 78 56 12 28',email:'contact@aproplac.fr',site:'aproplac.fr'},
   {id:'l21',zone:'Lyon',name:'Alveoles Architecture',city:'Lyon 9e',phone:'',email:'',site:'alveoles.eu'},
-  // ZONE ALPES (24)
+  {id:'l22',zone:'Lyon',name:'ADC Architecture',city:'Lyon',phone:'',email:'',site:'adc-architecture.fr'},
+  {id:'l23',zone:'Lyon',name:'Atelier Giffon',city:'Lyon',phone:'',email:'',site:'ateliergiffon.com'},
+  {id:'l24',zone:'Lyon',name:'AUM Pierre Minassian',city:'Lyon',phone:'',email:'',site:'pierminassian.com'},
+  {id:'l25',zone:'Lyon',name:'BC Ateliers',city:'Lyon',phone:'',email:'',site:'bc-ateliers.com'},
+  {id:'l26',zone:'Lyon',name:'By Architectes',city:'Lyon',phone:'',email:'',site:'by-architectes.fr'},
+  {id:'l27',zone:'Lyon',name:'Dorga',city:'Lyon',phone:'',email:'',site:'dorga.fr'},
+  {id:'l28',zone:'Lyon',name:'Eric Touraille Architecte',city:'Lyon',phone:'',email:'',site:'erictouraille.com'},
+  {id:'l29',zone:'Lyon',name:'Forty Studio',city:'Lyon',phone:'',email:'',site:'forty-studio.fr'},
+  {id:'l30',zone:'Lyon',name:'Franck Vadot Architecte',city:'Lyon',phone:'',email:'',site:'franckvadot.com'},
+  {id:'l31',zone:'Lyon',name:'Gilbert Architecte',city:'Lyon',phone:'',email:'',site:'gilbert-architecte.fr'},
+  {id:'l32',zone:'Lyon',name:'La Maison Février',city:'Lyon',phone:'',email:'',site:'lamaisonfevrier.com'},
+  {id:'l33',zone:'Lyon',name:'Maison ELC',city:'Lyon',phone:'',email:'',site:'maison-elc.com'},
+  {id:'l34',zone:'Lyon',name:'Maison Sacha Goutorbe',city:'Lyon',phone:'',email:'',site:'sachagoutorbe.com'},
+  {id:'l35',zone:'Lyon',name:'Michel Guillot Architecte',city:'Lyon',phone:'',email:'',site:'michelguillot.fr'},
+  {id:'l36',zone:'Lyon',name:'Rehome',city:'Lyon',phone:'',email:'',site:'rehome.fr'},
+  {id:'l37',zone:'Lyon',name:'Split Studio',city:'Lyon',phone:'',email:'',site:'split-studio.fr'},
+  {id:'l38',zone:'Lyon',name:'Stéphane Millet Architecte',city:'Lyon',phone:'',email:'',site:'stephanemillet.com'},
+  {id:'l39',zone:'Lyon',name:'Studio FB3',city:'Lyon',phone:'',email:'',site:'studiofb3.com'},
+  {id:'l40',zone:'Lyon',name:'Tenbo Groupe',city:'Lyon',phone:'',email:'',site:'tenbogroupe.com'},
+  {id:'l41',zone:'Lyon',name:'David Fleury Design',city:'Lyon',phone:'',email:'',site:'davidfleury.design'},
+  // ── ZONE ALPES (38) ─────────────────────────────
   {id:'a01',zone:'Alpes',name:'580 Rive Est',city:'Menthon-St-Bernard',phone:'06 75 34 97 15',email:'info@580riveest.fr',site:'580riveest.fr'},
   {id:'a02',zone:'Alpes',name:'Archidomo Architecture',city:'Talloires-Montmin',phone:'04 50 46 06 24',email:'contact@archidomo.fr',site:'archidomo.fr'},
   {id:'a03',zone:'Alpes',name:'Agence Amevet',city:'Chambéry',phone:'04 79 71 11 51',email:'contact@amevet.fr',site:'amevet.fr'},
@@ -291,7 +353,7 @@ const AGENCIES = [
   {id:'a08',zone:'Alpes',name:'MVMZ Architecture',city:'La Clusaz',phone:'04 50 10 92 99',email:'',site:'mvmz-architecture.com'},
   {id:'a09',zone:'Alpes',name:'Goy Architecte',city:'La Clusaz',phone:'',email:'',site:'goy-architecte.fr'},
   {id:'a10',zone:'Alpes',name:'Michel Thevenet Architecte',city:'La Clusaz',phone:'04 50 02 43 46',email:'',site:'thevenet-michel.com'},
-  {id:'a11',zone:'Alpes',name:'Art Project Megève',city:'Megève',phone:'04 50 58 66 25',email:'',site:'artproject-megeve.com'},
+  {id:'a11',zone:'Alpes',name:'Art Project Megève',city:'Megève',phone:'04 50 58 66 25',email:'contact@artproject-megeve.com',site:'artproject-megeve.com'},
   {id:'a12',zone:'Alpes',name:'Grosset Janin',city:'Megève',phone:'04 50 21 29 06',email:'',site:'grossetjanin.com'},
   {id:'a13',zone:'Alpes',name:'Paul Brondex et Fils',city:'Combloux',phone:'04 50 58 65 39',email:'contact@paul-brondex.com',site:'paul-brondex.com'},
   {id:'a14',zone:'Alpes',name:'Laforce Architecture',city:'Chamonix',phone:'04 50 58 11 08',email:'',site:'laforcearchitecture.com'},
@@ -305,7 +367,21 @@ const AGENCIES = [
   {id:'a22',zone:'Alpes',name:'Artenova',city:'Thonon-les-Bains',phone:'04 50 17 01 93',email:'',site:'artenova-thonon-les-bains.fr'},
   {id:'a23',zone:'Alpes',name:'Design du Lac',city:'Évian-les-Bains',phone:'',email:'',site:'designdulac-74.fr'},
   {id:'a24',zone:'Alpes',name:'Chalet Design',city:'Taninges',phone:'',email:'',site:'chaletdesign.com'},
-  // ZONE SUD (26)
+  {id:'a25',zone:'Alpes',name:'Chalet Bayrou',city:'Alpes',phone:'',email:'',site:'chaletbayrou.com'},
+  {id:'a26',zone:'Alpes',name:'DaVinci Architecture',city:'Alpes',phone:'',email:'',site:'davinci-architecture.fr'},
+  {id:'a27',zone:'Alpes',name:'Eden Home',city:'Alpes',phone:'',email:'',site:'edenhome.fr'},
+  {id:'a28',zone:'Alpes',name:'Groupe Dunoyer',city:'Alpes',phone:'',email:'',site:'groupedunoyer.com'},
+  {id:'a29',zone:'Alpes',name:'Ikone Architecture',city:'Alpes',phone:'',email:'',site:'ikone-architecture.fr'},
+  {id:'a30',zone:'Alpes',name:'JMV Resort',city:'Alpes',phone:'',email:'',site:'jmv-resort.com'},
+  {id:'a31',zone:'Alpes',name:'La Maison de Jade',city:'Alpes',phone:'',email:'',site:'lamaisondejafe.com'},
+  {id:'a32',zone:'Alpes',name:'LVB Studio Construction',city:'Alpes',phone:'',email:'',site:'lvb-studio.fr'},
+  {id:'a33',zone:'Alpes',name:'Maam Studio',city:'Alpes',phone:'',email:'',site:'maam-studio.fr'},
+  {id:'a34',zone:'Alpes',name:'Maison Chiche',city:'Alpes',phone:'',email:'',site:'maisonchiche.com'},
+  {id:'a35',zone:'Alpes',name:'PCM Megève',city:'Megève',phone:'',email:'',site:'pcm-megeve.com'},
+  {id:'a36',zone:'Alpes',name:'Reia Architecture',city:'Alpes',phone:'',email:'',site:'reia-architecture.fr'},
+  {id:'a37',zone:'Alpes',name:'Daï Création',city:'Alpes',phone:'',email:'',site:'dai-creation.fr'},
+  {id:'a38',zone:'Alpes',name:'White Luxury Architecture',city:'Alpes',phone:'',email:'',site:'whiteluxury.fr'},
+  // ── ZONE SUD (43) ───────────────────────────────
   {id:'s01',zone:'Sud',name:'Laurent Guillaud-Lozanne (St-Tropez)',city:'Saint-Tropez',phone:'04 22 14 66 35',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
   {id:'s02',zone:'Sud',name:'Atelier Sabrina Carlevaris',city:'Gassin',phone:'06 15 50 13 64',email:'sabrina@ateliercarlevaris.com',site:'sabrinacarlevaris.com'},
   {id:'s03',zone:'Sud',name:'CBG Architecture & Urbanisme',city:'Port Grimaud',phone:'04 94 56 30 34',email:'contact@cbgarchitecture.com',site:'cbgarchitecture.com'},
@@ -319,9 +395,9 @@ const AGENCIES = [
   {id:'s11',zone:'Sud',name:'Atelier Archipel Sud',city:'Le Pradet',phone:'04 94 08 37 84',email:'',site:'atelierarchipelsud.fr'},
   {id:'s12',zone:'Sud',name:'Architecte Coscolla',city:'La Seyne-sur-Mer',phone:'',email:'',site:'architectecoscolla.com'},
   {id:'s13',zone:'Sud',name:'R-House Design',city:'Mougins',phone:'04 93 90 95 41',email:'contact@r-housedesign.fr',site:'r-housedesign.fr'},
-  {id:'s14',zone:'Sud',name:'Marcoux Mathern & Associés',city:'Cannes',phone:'04 93 30 08 96',email:'',site:'marcouxmathern.com'},
+  {id:'s14',zone:'Sud',name:'Marcoux Mathern & Associés',city:'Cannes',phone:'04 93 30 08 96',email:'contact@marcouxmathern.com',site:'marcouxmathern.com'},
   {id:'s15',zone:'Sud',name:'IN QUARTO Architecte & Associés',city:'Châteauneuf-Grasse',phone:'04 93 66 38 35',email:'contact@inquartoarchitecte.fr',site:'inquartoarchitecte.fr'},
-  {id:'s16',zone:'Sud',name:'Atelier Architecture Croisette',city:'Mougins',phone:'',email:'',site:'atelierarchitecturecroisette.fr'},
+  {id:'s16',zone:'Sud',name:'Atelier Architecture Croisette',city:'Mougins',phone:'',email:'info@atelier-ac.fr',site:'atelierarchitecturecroisette.fr'},
   {id:'s17',zone:'Sud',name:'Fabien Durbano Architecte DPLG',city:'Mougins',phone:'',email:'',site:'fabiendurbano.com'},
   {id:'s18',zone:'Sud',name:'Vielliard & Francheteau (Nice)',city:'Nice',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
   {id:'s19',zone:'Sud',name:'Ulysse Géroux + Architects',city:'Nice',phone:'06 15 56 59 86',email:'',site:'ulyssegerouxarchitects.com'},
@@ -329,10 +405,70 @@ const AGENCIES = [
   {id:'s21',zone:'Sud',name:'Atelier Allione Architectes',city:'Beaulieu-sur-Mer',phone:'',email:'',site:'atelierallione.fr'},
   {id:'s22',zone:'Sud',name:'Cochet Paîs',city:'Cap d\'Antibes',phone:'',email:'',site:'cochetpais.com'},
   {id:'s23',zone:'Sud',name:'Daimon Design',city:'Roquebrune-Cap-Martin',phone:'',email:'',site:'daimondesign.com'},
-  {id:'s24',zone:'Sud',name:'DN Architectes',city:'Côte d\'Azur (multisite)',phone:'',email:'',site:'dnarchitectes.com'},
+  {id:'s24',zone:'Sud',name:'DN Architectes',city:'Côte d\'Azur',phone:'',email:'',site:'dnarchitectes.com'},
   {id:'s25',zone:'Sud',name:'AAGP — Les Ateliers Guillaume Pujol',city:'Aix-en-Provence',phone:'06 24 75 64 94',email:'contact@pujol-archi.com',site:'pujol-archi.com'},
   {id:'s26',zone:'Sud',name:'Au Temps des Bastides',city:'Éguilles / Pays d\'Aix',phone:'04 42 50 63 28',email:'',site:'autempsdesbastides.com'},
+  {id:'s27',zone:'Sud',name:'Air Architecture',city:'Sud',phone:'',email:'',site:'air-architecture.fr'},
+  {id:'s28',zone:'Sud',name:'Architecture des Caps',city:'Sud',phone:'',email:'',site:'architecturedescaps.fr'},
+  {id:'s29',zone:'Sud',name:'Atelier NB',city:'Sud',phone:'',email:'',site:'atelier-nb.fr'},
+  {id:'s30',zone:'Sud',name:'Cocci\'a',city:'Sud',phone:'',email:'',site:'coccia-architecture.fr'},
+  {id:'s31',zone:'Sud',name:'DMG Architecture',city:'Sud',phone:'',email:'',site:'dmg-architecture.fr'},
+  {id:'s32',zone:'Sud',name:'Emelyne Lavoine',city:'Sud',phone:'',email:'',site:'emelynelavoine.com'},
+  {id:'s33',zone:'Sud',name:'Ever Fair',city:'Sud',phone:'',email:'',site:'everfair.fr'},
+  {id:'s34',zone:'Sud',name:'FX Poudroux Architecte',city:'Sud',phone:'',email:'',site:'fxpoudroux.com'},
+  {id:'s35',zone:'Sud',name:'Jeanne Vieillecroze',city:'Sud',phone:'',email:'',site:'jeannevieillecroze.com'},
+  {id:'s36',zone:'Sud',name:'Julien Rhinn Architecture',city:'Sud',phone:'',email:'',site:'julienrhinn.com'},
+  {id:'s37',zone:'Sud',name:'Krause Architecture',city:'Sud',phone:'',email:'',site:'krause-architecture.fr'},
+  {id:'s38',zone:'Sud',name:'L43 Architecture',city:'Sud',phone:'',email:'',site:'l43architecture.com'},
+  {id:'s39',zone:'Sud',name:'Laurent Moretti Architecte',city:'Sud',phone:'',email:'',site:'laurentmoretti.fr'},
+  {id:'s40',zone:'Sud',name:'Le Ven Design',city:'Sud',phone:'',email:'',site:'levendesign.fr'},
+  {id:'s41',zone:'Sud',name:'Sarich Goujon',city:'Sud',phone:'',email:'',site:'sarichgoujon.com'},
+  {id:'s42',zone:'Sud',name:'Studio Oreka',city:'Sud',phone:'',email:'',site:'studio-oreka.fr'},
+  {id:'s43',zone:'Sud',name:'Studio PVG',city:'Sud',phone:'',email:'',site:'studiopvg.fr'},
+  // ── ZONE AUTRES (6) ─────────────────────────────
+  {id:'x01',zone:'Autres',name:'AAB Arcachon',city:'Arcachon',phone:'',email:'',site:'aab-arcachon.fr'},
+  {id:'x02',zone:'Autres',name:'AFD Architecture Corse',city:'Corse',phone:'',email:'',site:'afd-corse.fr'},
+  {id:'x03',zone:'Autres',name:'Aoda Monaco',city:'Monaco',phone:'',email:'',site:'aoda.mc'},
+  {id:'x04',zone:'Autres',name:'Ksh Design',city:'Paris',phone:'',email:'',site:'kshdesign.fr'},
+  {id:'x05',zone:'Autres',name:'Watt Architecture',city:'Paris',phone:'',email:'',site:'watt-architecture.com'},
+  {id:'x06',zone:'Autres',name:'Xavier Lemoine Architecte',city:'Paris',phone:'',email:'',site:'xavierlemoine.fr'},
 ];
+
+// ═══════════════════════════════════════════════════
+// MAIL TEMPLATE
+// ═══════════════════════════════════════════════════
+const DEFAULT_TEMPLATE = `Madame, Monsieur,
+
+Étudiant en 4ème année d'école d'architecture à CREAD Lyon, je souhaite découvrir un cabinet d'architecture qui réalise des projets haut de gamme.
+J'aimerais intégrer {{agence}} dans le cadre d'un stage de deux mois, du 26 mai au 18 juillet 2025.
+
+J'ai particulièrement apprécié votre approche globale et vision de l'architecture, ainsi que vos réalisations sur-mesure.
+
+Durant ma formation, j'ai développé des compétences en conception de projets, modélisation 3D (SketchUp, AutoCAD) et présentation graphique (Indesign, Photoshop). Curieux et motivé, je suis attiré par les projets créatifs qui répondent aussi aux besoins fonctionnels des clients.
+
+Travailler à vos côtés me permettrait de mieux comprendre le quotidien en agence et de participer aux différentes étapes d'un projet architectural. Je serais ravi de vous aider dans la réalisation de plans ou de 3D. Je suis prêt à m'investir pleinement dans les missions qui me seront confiées, tout en apportant ma rigueur et ma volonté d'apprendre.
+
+Je serais heureux de vous présenter mon portfolio lors d'un entretien. (https://Portfolio-Tom-Maradan) et reste à votre disposition pour échanger davantage sur mes motivations.
+Je vous remercie de l'attention que vous porterez à ma candidature.
+
+Dans l'attente de votre retour,
+Cordialement,
+
+Tom Maradan
+06 72 25 67 83
+maradantom@gmail.com
+Portfolio : https://Portfolio-Tom-Maradan`;
+
+let mailTemplate = DEFAULT_TEMPLATE;
+
+function makeMailto(ag) {
+  const tpl = mailTemplate
+    .replace(/\{\{agence\}\}/g, ag.name)
+    .replace(/\{\{ville\}\}/g, ag.city);
+  const subject = encodeURIComponent('Candidature stage architecture — Tom Maradan');
+  const body = encodeURIComponent(tpl);
+  return `mailto:${ag.email}?subject=${subject}&body=${body}`;
+}
 
 // ═══════════════════════════════════════════════════
 // STATUT CONFIG
@@ -341,15 +477,15 @@ const STATUSES = {
   'nc': {label:'Non contacté', cls:'s-nc', days:null},
   'em': {label:'Email envoyé', cls:'s-em', days:14},
   'r1': {label:'Relance 1',    cls:'s-r1', days:21},
-  'r2': {label:'Relance 2',   cls:'s-r2', days:28},
-  'rp': {label:'Réponse reçue',cls:'s-rp',days:null},
-  'en': {label:'Entretien',   cls:'s-en', days:null},
+  'r2': {label:'Relance 2',    cls:'s-r2', days:28},
+  'rp': {label:'Réponse reçue',cls:'s-rp', days:null},
+  'en': {label:'Entretien',    cls:'s-en', days:null},
   'ok': {label:'Stage obtenu ✓',cls:'s-ok',days:null},
-  'rf': {label:'Refus',       cls:'s-rf', days:null},
+  'rf': {label:'Refus',        cls:'s-rf', days:null},
 };
 
 // ═══════════════════════════════════════════════════
-// LOCAL DATA CACHE (rempli depuis Firestore)
+// DATA CACHE
 // ═══════════════════════════════════════════════════
 let data = {};
 
@@ -357,7 +493,6 @@ function getEntry(id) {
   return data[id] || {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
 }
 
-// Sauvegarde dans Firestore (+ cache local immédiat)
 async function saveEntry(id, field, val) {
   if (!data[id]) data[id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
   data[id][field] = val;
@@ -378,20 +513,41 @@ function flashSaved() {
 }
 
 // ═══════════════════════════════════════════════════
-// FIREBASE INIT DATA
+// INIT FIREBASE
 // ═══════════════════════════════════════════════════
 async function initData() {
   try {
-    // Charger tous les documents existants
+    // Charger le modèle mail
+    try {
+      const mailDoc = await db.collection('settings').doc('mail').get();
+      if (mailDoc.exists && mailDoc.data().template) {
+        mailTemplate = mailDoc.data().template;
+      }
+    } catch(e) { /* si pas encore créé, on garde le défaut */ }
+
+    // Charger tous les docs prospection
     const snapshot = await db.collection(COL).get();
     const existing = new Set();
 
     snapshot.forEach(doc => {
-      data[doc.id] = doc.data();
+      const d = doc.data();
+      data[doc.id] = d;
       existing.add(doc.id);
+      // Agences custom : on les pousse dans AGENCIES si pas déjà présentes
+      if (d._custom && !AGENCIES.find(a => a.id === doc.id)) {
+        AGENCIES.push({
+          id: doc.id,
+          zone: d._zone || 'Autres',
+          name: d._name || doc.id,
+          city: d._city || '',
+          phone: d._phone || '',
+          email: d._email || '',
+          site: d._site || '',
+        });
+      }
     });
 
-    // Initialiser les agences manquantes (première utilisation)
+    // Initialiser les agences manquantes
     const missing = AGENCIES.filter(ag => !existing.has(ag.id));
     if (missing.length > 0) {
       const batch = db.batch();
@@ -403,7 +559,6 @@ async function initData() {
       await batch.commit();
     }
 
-    // Masquer l'écran de chargement
     document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('sync-ind').textContent = '✅ Firebase connecté';
     setTimeout(() => {
@@ -420,6 +575,59 @@ async function initData() {
       '<div style="color:#ef4444;font-size:.9rem;text-align:center;padding:2rem">' +
       '⚠️ Impossible de se connecter à Firebase.<br>Vérifiez votre connexion internet.</div>';
   }
+}
+
+// ═══════════════════════════════════════════════════
+// MODAL AJOUT AGENCE CUSTOM
+// ═══════════════════════════════════════════════════
+function openModal() {
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('m-name').focus();
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  ['m-name','m-city','m-phone','m-email','m-site'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('m-zone').value = 'Lyon';
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+async function saveCustomAgency() {
+  const name = document.getElementById('m-name').value.trim();
+  if (!name) { alert('Le nom de l\'agence est obligatoire.'); return; }
+
+  const zone  = document.getElementById('m-zone').value;
+  const city  = document.getElementById('m-city').value.trim();
+  const phone = document.getElementById('m-phone').value.trim();
+  const email = document.getElementById('m-email').value.trim();
+  const site  = document.getElementById('m-site').value.trim().replace(/^https?:\/\//,'');
+
+  // Générer un ID unique
+  const ts = Date.now();
+  const id = 'c' + ts;
+
+  // Pousser dans le tableau local
+  const newAg = {id, zone, name, city, phone, email, site};
+  AGENCIES.push(newAg);
+
+  // Sauvegarder en Firestore avec métadonnées
+  data[id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false,
+              _custom:true, _zone:zone, _name:name, _city:city, _phone:phone, _email:email, _site:site};
+  try {
+    await db.collection(COL).doc(id).set(data[id]);
+    flashSaved();
+  } catch(e) {
+    console.error('Erreur ajout agence:', e);
+    alert('Erreur lors de la sauvegarde. Vérifiez votre connexion.');
+    return;
+  }
+
+  closeModal();
+  updateStats();
+  renderTable();
 }
 
 // ═══════════════════════════════════════════════════
@@ -449,8 +657,8 @@ function addDays(dateStr, n) {
   return d.toISOString().split('T')[0];
 }
 function zoneBadge(zone) {
-  const map = {Lyon:'b-lyon', Alpes:'b-alpes', Sud:'b-sud'};
-  return `<span class="badge ${map[zone]||''}">${zone}</span>`;
+  const map = {Lyon:'b-lyon', Alpes:'b-alpes', Sud:'b-sud', Autres:'b-autres'};
+  return `<span class="badge ${map[zone]||'b-autres'}">${zone}</span>`;
 }
 
 // ═══════════════════════════════════════════════════
@@ -476,12 +684,12 @@ function renderTable() {
   if (sortKey) {
     rows.sort((a,b) => {
       let va, vb;
-      if (sortKey === 'name') { va = a.name; vb = b.name; }
-      else if (sortKey === 'zone') { va = a.zone; vb = b.zone; }
+      if (sortKey === 'name')    { va = a.name; vb = b.name; }
+      else if (sortKey === 'zone')   { va = a.zone; vb = b.zone; }
       else if (sortKey === 'status') { va = getEntry(a.id).status; vb = getEntry(b.id).status; }
-      else if (sortKey === 'contact') { va = getEntry(a.id).contactDate||''; vb = getEntry(b.id).contactDate||''; }
-      else if (sortKey === 'relance') { va = getEntry(a.id).relanceDate||''; vb = getEntry(b.id).relanceDate||''; }
-      else if (sortKey === 'prio') { va = getEntry(a.id).prio?0:1; vb = getEntry(b.id).prio?0:1; return va-vb; }
+      else if (sortKey === 'contact'){ va = getEntry(a.id).contactDate||''; vb = getEntry(b.id).contactDate||''; }
+      else if (sortKey === 'relance'){ va = getEntry(a.id).relanceDate||''; vb = getEntry(b.id).relanceDate||''; }
+      else if (sortKey === 'prio')   { return (getEntry(a.id).prio?0:1)-(getEntry(b.id).prio?0:1); }
       return sortDir * va.localeCompare(vb);
     });
   }
@@ -498,9 +706,13 @@ function renderTable() {
     const tr = document.createElement('tr');
     if (overdue) tr.classList.add('overdue');
 
+    // Colonne coordonnées : téléphone + email (avec mailto pré-rempli si template)
     const contactCell = [];
     if (ag.phone) contactCell.push(`<a class="tel-lnk" href="tel:${ag.phone}">${ag.phone}</a>`);
-    if (ag.email) contactCell.push(`<a class="tel-lnk" href="mailto:${ag.email}" title="${ag.email}">✉ ${ag.email.split('@')[0]}@…</a>`);
+    if (ag.email) {
+      const href = makeMailto(ag);
+      contactCell.push(`<a class="mail-lnk" href="${href}" title="Ouvrir avec modèle de lettre">✉ ${ag.email}</a>`);
+    }
     if (!ag.phone && !ag.email) contactCell.push('<span style="color:#ccc;font-size:.72rem">Formulaire site</span>');
 
     const statusOpts = Object.entries(STATUSES).map(([k,v]) =>
@@ -523,17 +735,17 @@ function renderTable() {
         </select>
       </td>
       <td>
-        <input type="date" class="date-in" data-id="${ag.id}" data-field="contactDate" value="${e.contactDate||''}"
+        <input type="date" class="date-in" value="${e.contactDate||''}"
           onchange="saveEntry('${ag.id}','contactDate',this.value);autoRelance('${ag.id}')"/>
       </td>
       <td>
-        <input type="date" class="date-in ${relCls}" data-id="${ag.id}" data-field="relanceDate" value="${e.relanceDate||''}"
+        <input type="date" class="date-in ${relCls}" value="${e.relanceDate||''}"
           onchange="saveEntry('${ag.id}','relanceDate',this.value);renderTable()"/>
         ${overdue?'<br><span style="color:#dc2626;font-size:.68rem;font-weight:700">EN RETARD</span>':''}
         ${todayRel&&!overdue?'<br><span style="color:#d97706;font-size:.68rem;font-weight:700">AUJOURD\'HUI</span>':''}
       </td>
       <td class="notes-td">
-        <textarea class="note-ta" data-id="${ag.id}" rows="1"
+        <textarea class="note-ta" rows="1"
           onchange="saveEntry('${ag.id}','notes',this.value)"
           placeholder="Notes…">${e.notes||''}</textarea>
       </td>`;
@@ -549,8 +761,7 @@ function changeStatus(id, sel) {
     const e = getEntry(id);
     if (!e.relanceDate) {
       const base = e.contactDate || today();
-      const rel = addDays(base, STATUSES[newStatus].days);
-      saveEntry(id, 'relanceDate', rel);
+      saveEntry(id, 'relanceDate', addDays(base, STATUSES[newStatus].days));
     }
   }
   renderTable();
@@ -636,8 +847,8 @@ function exportCSV() {
   const rows = [['Zone','Agence','Ville','Téléphone','Email','Site','Statut','Date contact','Relance prévue','Notes','Priorité']];
   AGENCIES.forEach(ag => {
     const e = getEntry(ag.id);
-    const st = STATUSES[e.status]?.label || '';
-    rows.push([ag.zone,ag.name,ag.city,ag.phone,ag.email,ag.site,st,e.contactDate||'',e.relanceDate||'',e.notes||'',e.prio?'Oui':'']);
+    rows.push([ag.zone,ag.name,ag.city,ag.phone,ag.email,ag.site,
+      STATUSES[e.status]?.label||'',e.contactDate||'',e.relanceDate||'',e.notes||'',e.prio?'Oui':'']);
   });
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
@@ -660,6 +871,11 @@ document.querySelectorAll('.stat-pill').forEach(pill => {
 });
 document.getElementById('zone-filter').addEventListener('change', renderTable);
 document.getElementById('search').addEventListener('input', renderTable);
+
+// Fermer le modal avec Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
 
 // ═══════════════════════════════════════════════════
 // DÉMARRAGE
