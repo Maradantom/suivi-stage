@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Suivi Prospection — Stage Architecture</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='10' fill='%231a1a1a'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='700' font-size='15' fill='%23C9A84C' letter-spacing='1'>STAGE</text></svg>"/>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
@@ -24,9 +25,14 @@
     .hdr h1{font-size:1.2rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
     .hdr p{margin-top:.25rem;font-size:.78rem;color:#888}
     /* LOADING */
-    #loading-screen{position:fixed;inset:0;background:#1a1a1a;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;color:#fff}
-    #loading-screen h2{font-size:1rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#888}
-    .spinner{width:36px;height:36px;border:3px solid #333;border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite}
+    #loading-screen{position:fixed;inset:0;background:#111;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;color:#fff}
+    #loading-screen .ld-logo{font-size:2.2rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#fff;margin-bottom:.4rem;animation:fadeUp .6s ease both}
+    #loading-screen .ld-sub{font-size:.7rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:#C9A84C;margin-bottom:2.8rem;animation:fadeUp .6s .1s ease both;opacity:0}
+    .ld-bar-wrap{width:160px;height:2px;background:#2a2a2a;border-radius:2px;overflow:hidden;animation:fadeUp .4s .2s ease both;opacity:0}
+    .ld-bar{height:100%;width:0;background:linear-gradient(90deg,#C9A84C,#e8c87a);border-radius:2px;animation:loadBar 1.6s .3s cubic-bezier(.4,0,.2,1) forwards}
+    #loading-screen .ld-msg{margin-top:1.4rem;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#444;animation:fadeUp .4s .3s ease both;opacity:0}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    @keyframes loadBar{0%{width:0}60%{width:75%}85%{width:88%}100%{width:100%}}
     @keyframes spin{to{transform:rotate(360deg)}}
     /* STATS BAR */
     .stats-bar{background:#fff;border-bottom:1px solid #e5e5e5;padding:.8rem 1.5rem;display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap}
@@ -159,8 +165,10 @@
 
 <!-- LOADING SCREEN -->
 <div id="loading-screen">
-  <div class="spinner"></div>
-  <h2>Connexion à Firebase…</h2>
+  <div class="ld-logo">Stage</div>
+  <div class="ld-sub">Prospection Architecture</div>
+  <div class="ld-bar-wrap"><div class="ld-bar"></div></div>
+  <div class="ld-msg">Synchronisation en cours…</div>
 </div>
 
 <!-- MODAL AJOUT AGENCE -->
