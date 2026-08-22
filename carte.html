@@ -18,8 +18,9 @@
     #fixed-header{position:fixed;top:0;left:0;right:0;z-index:1000}
 
     /* NAV */
-    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333}
-    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s}
+    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    nav::-webkit-scrollbar{display:none}
+    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s;white-space:nowrap;flex-shrink:0}
     nav a:hover,nav a.active{background:#fff;color:#111}
 
     /* SUBHEADER */

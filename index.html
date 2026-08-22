@@ -15,8 +15,9 @@
     /* SCROLL AREA */
     #scroll-area{position:fixed;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:auto;background:#f5f4f1}
     /* NAV */
-    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333}
-    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s}
+    nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    nav::-webkit-scrollbar{display:none}
+    nav a{color:#ccc;text-decoration:none;padding:.75rem 1.5rem;font-size:.82rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;transition:background .15s,color .15s;white-space:nowrap;flex-shrink:0}
     nav a:hover,nav a.active{background:#fff;color:#111}
     /* HEADER */
     .hdr{background:#1a1a1a;color:#fff;padding:1.5rem 1.5rem 1.2rem}
@@ -106,6 +107,10 @@
     #empty-state{text-align:center;padding:3rem;color:#aaa;display:none}
     /* EXPORT */
     #export-btn{margin-left:auto}
+    /* EDITABLE CELLS */
+    .editable-td{cursor:pointer;position:relative}
+    .editable-td:hover::after{content:'✏';position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:.65rem;opacity:.35;pointer-events:none}
+    .editable-td input.cell-input{border:1px solid #7c3aed;border-radius:4px;padding:.2rem .4rem;font-size:.78rem;width:100%;background:#fff;color:#1a1a1a;font-family:inherit}
 
     /* ══════════════════════════════
        MODAL AJOUT AGENCE
@@ -777,6 +782,29 @@ function getFiltered() {
   });
 }
 
+function editCell(td, id, field, currentVal) {
+  if (td.querySelector('input.cell-input')) return;
+  const prev = td.innerHTML;
+  td.innerHTML = '';
+  const inp = document.createElement('input');
+  inp.className = 'cell-input';
+  inp.value = currentVal;
+  td.appendChild(inp);
+  inp.focus();
+  inp.select();
+  const commit = async () => {
+    const val = inp.value.trim();
+    await saveEntry(id, field, val);
+    renderTable();
+  };
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
+    if (ev.key === 'Escape') { td.innerHTML = prev; }
+  });
+  inp.addEventListener('click', ev => ev.stopPropagation());
+}
+
 function renderTable() {
   const tbody = document.getElementById('tbody');
   let rows = getFiltered();
@@ -807,13 +835,18 @@ function renderTable() {
     const tr = document.createElement('tr');
     if (overdue) tr.classList.add('overdue');
 
-    // Colonnes séparées : adresse / téléphone / email
-    const adresse = ADDRESSES[ag.id] || '';
-    const phoneHtml = ag.phone
-      ? `<a class="tel-lnk" href="tel:${ag.phone}">${ag.phone}</a>`
+    // Colonnes séparées : adresse / téléphone / email (Firebase override > AGENCIES)
+    const phone = e.phone  !== undefined ? e.phone  : ag.phone;
+    const email = e.email  !== undefined ? e.email  : ag.email;
+    const site  = e.site   !== undefined ? e.site   : ag.site;
+    const city  = e.city   !== undefined ? e.city   : ag.city;
+    const name  = e.name   !== undefined ? e.name   : ag.name;
+    const adresse = e.address !== undefined ? e.address : (ADDRESSES[ag.id] || '');
+    const phoneHtml = phone
+      ? `<a class="tel-lnk" href="tel:${phone}">${phone}</a>`
       : '<span style="color:#ddd;font-size:.72rem">—</span>';
-    const emailHtml = ag.email
-      ? `<a class="mail-lnk" href="${makeMailto(ag)}" title="Ouvrir avec modèle de lettre">✉ ${ag.email}</a>`
+    const emailHtml = email
+      ? `<a class="mail-lnk" href="${makeMailto({...ag, email})}" title="Ouvrir avec modèle de lettre">✉ ${email}</a>`
       : '<span style="color:#ddd;font-size:.72rem">—</span>';
 
     const statusOpts = Object.entries(STATUSES).map(([k,v]) =>
@@ -825,13 +858,13 @@ function renderTable() {
     tr.innerHTML = `
       <td style="color:#bbb;font-size:.72rem;text-align:right">${i+1}</td>
       <td style="text-align:center"><span class="star ${e.prio?'on':''}" data-id="${ag.id}" onclick="togglePrio('${ag.id}',this)">★</span></td>
-      <td style="font-weight:600;min-width:160px">${ag.name}</td>
+      <td style="font-weight:600;min-width:160px" class="editable-td" onclick="editCell(this,'${ag.id}','name','${name.replace(/'/g,"&#39;")}')">${name}</td>
       <td>${zoneBadge(ag.zone)}</td>
-      <td style="color:#555;white-space:nowrap;font-size:.78rem">${ag.city}</td>
-      <td class="addr-td">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
-      <td class="phone-td">${phoneHtml}</td>
-      <td class="email-td">${emailHtml}</td>
-      <td><a class="site-lnk" href="https://${ag.site}" target="_blank">${ag.site}</a></td>
+      <td style="color:#555;white-space:nowrap;font-size:.78rem" class="editable-td" onclick="editCell(this,'${ag.id}','city','${city.replace(/'/g,"&#39;")}')">${city}</td>
+      <td class="addr-td editable-td" onclick="editCell(this,'${ag.id}','address','${adresse.replace(/'/g,"&#39;")}')">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
+      <td class="phone-td editable-td" onclick="editCell(this,'${ag.id}','phone','${phone.replace(/'/g,"&#39;")}')">${phoneHtml}</td>
+      <td class="email-td editable-td" onclick="editCell(this,'${ag.id}','email','${email.replace(/'/g,"&#39;")}')">${emailHtml}</td>
+      <td class="editable-td" onclick="editCell(this,'${ag.id}','site','${site.replace(/'/g,"&#39;")}')" style="font-size:.78rem;color:#1d4ed8">${site}</td>
       <td>
         <select class="status-sel ${st.cls}" data-id="${ag.id}" onchange="changeStatus('${ag.id}',this)">
           ${statusOpts}
