@@ -115,7 +115,7 @@
     #export-btn{margin-left:auto}
     /* EDITABLE CELLS */
     .editable-td{cursor:pointer;position:relative}
-    .editable-td:hover::after{content:'✏';position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:.65rem;opacity:.35;pointer-events:none}
+    .editable-td[onclick]:hover::after,.editable-td[ondblclick]:hover::after{content:'✏';position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:.65rem;opacity:.35;pointer-events:none}
     .editable-td input.cell-input{border:1px solid #7c3aed;border-radius:4px;padding:.2rem .4rem;font-size:.78rem;width:100%;background:#fff;color:#1a1a1a;font-family:inherit}
 
     /* ══════════════════════════════
@@ -870,9 +870,9 @@ function renderTable() {
       <td>${zoneBadge(ag.zone)}</td>
       <td style="color:#555;white-space:nowrap;font-size:.78rem" class="editable-td" onclick="editCell(this,'${ag.id}','city','${city.replace(/'/g,"&#39;")}')">${city}</td>
       <td class="addr-td editable-td" onclick="editCell(this,'${ag.id}','address','${adresse.replace(/'/g,"&#39;")}')">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
-      <td class="phone-td editable-td" onclick="editCell(this,'${ag.id}','phone','${phone.replace(/'/g,"&#39;")}')">${phoneHtml}</td>
-      <td class="email-td editable-td" onclick="editCell(this,'${ag.id}','email','${email.replace(/'/g,"&#39;")}')">${emailHtml}</td>
-      <td class="editable-td" onclick="editCell(this,'${ag.id}','site','${site.replace(/'/g,"&#39;")}')" style="font-size:.78rem;color:#1d4ed8">${site}</td>
+      <td class="phone-td editable-td" ondblclick="editCell(this,'${ag.id}','phone','${phone.replace(/'/g,"&#39;")}')">${phoneHtml}</td>
+      <td class="email-td editable-td" ondblclick="editCell(this,'${ag.id}','email','${email.replace(/'/g,"&#39;")}')">${emailHtml}</td>
+      <td class="editable-td" ondblclick="editCell(this,'${ag.id}','site','${site.replace(/'/g,"&#39;")}')" style="font-size:.78rem"><a class="site-lnk" href="https://${site}" target="_blank">${site}</a></td>
       <td>
         <select class="status-sel ${st.cls}" data-id="${ag.id}" onchange="changeStatus('${ag.id}',this)">
           ${statusOpts}
