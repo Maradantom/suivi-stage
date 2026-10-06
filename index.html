@@ -635,7 +635,10 @@ async function saveEntry(id, field, val) {
   if (!data[id]) data[id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
   data[id][field] = val;
   try {
-    await db.collection(COL).doc(id).set({[field]: val}, {merge: true});
+    // Si l'adresse change, effacer les coords géocodées pour forcer un nouveau géocodage sur la carte
+    const payload = {[field]: val};
+    if (field === 'address') { payload._lat = null; payload._lng = null; }
+    await db.collection(COL).doc(id).set(payload, {merge: true});
     flashSaved();
   } catch(e) {
     console.error('Erreur Firestore:', e);

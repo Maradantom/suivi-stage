@@ -395,13 +395,41 @@ let map, allMarkers = [], firestoreData = {};
 let activeZone = 'all', activeSearch = '';
 
 function getCoords(ag) {
+  // 1. Coords geocodées cachées dans Firestore (adresse précise)
+  const fd = firestoreData[ag.id];
+  if (fd && fd._lat && fd._lng) return [fd._lat, fd._lng];
+  // 2. Ville connue
   const c = CITY_COORDS[ag.city];
   if (c) return c;
-  // Fallback par zone
-  if (ag.zone === 'Lyon')   return [45.7640 + Math.random()*0.05-0.025, 4.8357 + Math.random()*0.05-0.025];
-  if (ag.zone === 'Alpes')  return [45.70   + Math.random()*0.5-0.25,   6.50   + Math.random()*0.5-0.25];
-  if (ag.zone === 'Sud')    return [43.50   + Math.random()*0.5-0.25,   6.50   + Math.random()*0.5-0.25];
-  return [46.0 + Math.random()*2-1, 4.0 + Math.random()*2-1];
+  // 3. Fallback zone centre fixe
+  if (ag.zone === 'Lyon')   return [45.7640, 4.8357];
+  if (ag.zone === 'Alpes')  return [45.70,   6.50];
+  if (ag.zone === 'Sud')    return [43.50,   6.80];
+  return [46.0, 4.0];
+}
+
+async function geocodeAddress(address) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ', France')}&format=json&limit=1`;
+    const r = await fetch(url, {headers: {'Accept-Language': 'fr'}});
+    const j = await r.json();
+    if (j.length) return [parseFloat(j[0].lat), parseFloat(j[0].lon)];
+  } catch(e) {}
+  return null;
+}
+
+async function geocodePendingMarkers() {
+  for (const {marker, ag} of allMarkers) {
+    const fd = firestoreData[ag.id];
+    const address = fd?.address || fd?.['address'];
+    if (!address || (fd._lat && fd._lng)) continue;
+    const coords = await geocodeAddress(address);
+    if (!coords) continue;
+    // Sauvegarder dans Firestore pour éviter de regeocoder
+    await db.collection('prospection').doc(ag.id).set({_lat: coords[0], _lng: coords[1]}, {merge: true});
+    firestoreData[ag.id] = {...fd, _lat: coords[0], _lng: coords[1]};
+    marker.setLatLng(coords);
+  }
 }
 
 function makeIcon(zone, status) {
@@ -568,6 +596,8 @@ async function init() {
   document.getElementById('loading-screen').style.display = 'none';
   buildMarkers();
   adjustLayout();
+  // Géocoder les adresses précises en arrière-plan
+  geocodePendingMarkers();
 }
 
 init();
