@@ -113,6 +113,9 @@
     #empty-state{text-align:center;padding:3rem;color:#aaa;display:none}
     /* EXPORT */
     #export-btn{margin-left:auto}
+    /* DELETE BTN */
+    .btn-del{background:none;border:none;cursor:pointer;color:#ddd;font-size:.85rem;padding:.1rem .3rem;border-radius:4px;transition:color .15s,background .15s;line-height:1}
+    .btn-del:hover{color:#dc2626;background:#fff5f5}
     /* EDITABLE CELLS */
     .editable-td{cursor:pointer;position:relative}
     .editable-td[onclick]:hover::after,.editable-td[ondblclick]:hover::after{content:'✏';position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:.65rem;opacity:.35;pointer-events:none}
@@ -804,6 +807,7 @@ function getFiltered() {
   const sf = document.getElementById('search').value.toLowerCase();
   return AGENCIES.filter(ag => {
     const e = getEntry(ag.id);
+    if (e._hidden) return false;
     if (zf && ag.zone !== zf) return false;
     const addr = (ADDRESSES[ag.id]||'').toLowerCase();
     if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf) && !addr.includes(sf)) return false;
@@ -811,6 +815,21 @@ function getFiltered() {
     if (activeFilter !== 'all' && e.status !== activeFilter) return false;
     return true;
   });
+}
+
+async function deleteAgency(id) {
+  if (!confirm('Supprimer cette agence du tableau ?')) return;
+  const e = getEntry(id);
+  if (e._custom) {
+    await db.collection(COL).doc(id).delete();
+    const idx = AGENCIES.findIndex(a => a.id === id);
+    if (idx !== -1) AGENCIES.splice(idx, 1);
+    delete data[id];
+  } else {
+    await db.collection(COL).doc(id).set({_hidden: true}, {merge: true});
+    data[id] = {...(data[id]||{}), _hidden: true};
+  }
+  renderTable();
 }
 
 function editCell(td, id, field, currentVal) {
@@ -915,6 +934,9 @@ function renderTable() {
         <textarea class="note-ta" rows="1"
           onchange="saveEntry('${ag.id}','notes',this.value)"
           placeholder="Notes…">${e.notes||''}</textarea>
+      </td>
+      <td style="text-align:center;width:32px">
+        <button class="btn-del" onclick="deleteAgency('${ag.id}')" title="Supprimer">🗑</button>
       </td>`;
     tbody.appendChild(tr);
   });
