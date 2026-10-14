@@ -612,6 +612,39 @@ Portfolio : https://Portfolio-Tom-Maradan`;
 
 let mailTemplate = DEFAULT_TEMPLATE;
 
+function handleEmailClick(evt, agId) {
+  // Let the mailto open, then ask for confirmation after a short delay
+  setTimeout(() => {
+    const popup = document.createElement('div');
+    popup.id = 'mail-confirm-popup';
+    popup.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9998;display:flex;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:12px;padding:1.4rem 1.8rem;box-shadow:0 8px 32px rgba(0,0,0,.18);max-width:340px;text-align:center">
+          <div style="font-size:1.5rem;margin-bottom:.6rem">✉️</div>
+          <div style="font-weight:600;font-size:1rem;margin-bottom:.3rem">Mail envoyé ?</div>
+          <div style="color:#666;font-size:.85rem;margin-bottom:1.1rem">Si oui, le statut passera à <strong>Email envoyé</strong> et la relance sera fixée à J+14.</div>
+          <div style="display:flex;gap:.7rem;justify-content:center">
+            <button onclick="confirmMailSent('${agId}',true)" style="background:#16a34a;color:#fff;border:none;border-radius:7px;padding:.45rem 1.1rem;font-weight:600;cursor:pointer;font-size:.9rem">Oui, envoyé ✓</button>
+            <button onclick="confirmMailSent('${agId}',false)" style="background:#f1f5f9;color:#334155;border:none;border-radius:7px;padding:.45rem 1.1rem;font-weight:600;cursor:pointer;font-size:.9rem">Non</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(popup);
+  }, 400);
+}
+
+function confirmMailSent(agId, sent) {
+  const popup = document.getElementById('mail-confirm-popup');
+  if (popup) popup.remove();
+  if (!sent) return;
+  const today = new Date().toISOString().slice(0,10);
+  const relance = addDays(today, 14);
+  saveEntry(agId, 'status', 'em');
+  saveEntry(agId, 'contactDate', today);
+  saveEntry(agId, 'relanceDate', relance);
+  renderTable();
+}
+
 function makeMailto(ag) {
   const tpl = mailTemplate
     .replace(/\{\{agence\}\}/g, ag.name)
@@ -912,7 +945,7 @@ function renderTable() {
       ? `<a class="tel-lnk" href="tel:${phone}">${phone}</a>`
       : '<span style="color:#ddd;font-size:.72rem">—</span>';
     const emailHtml = email
-      ? `<a class="mail-lnk" href="${makeMailto({...ag, email})}" title="Ouvrir avec modèle de lettre">✉ ${email}</a>`
+      ? `<a class="mail-lnk" href="${makeMailto({...ag, email})}" title="Ouvrir avec modèle de lettre" onclick="handleEmailClick(event,'${ag.id}')">✉ ${email}</a>`
       : '<span style="color:#ddd;font-size:.72rem">—</span>';
 
     const statusOpts = Object.entries(STATUSES).map(([k,v]) =>
