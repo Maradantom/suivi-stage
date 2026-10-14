@@ -319,7 +319,7 @@ const COL = 'prospection';
 // AGENCES — 128 au total
 // ═══════════════════════════════════════════════════
 const AGENCIES = [
-  // ── ZONE LYON (41) ──────────────────────────────
+  // ── ZONE LYON (45) ──────────────────────────────
   {id:'l01',zone:'Lyon',name:'Résidences de Prestige by CV',city:'Villeurbanne',phone:'04 69 00 11 49',email:'contact@residenceprestige.com',site:'residenceprestige.com'},
   {id:'l02',zone:'Lyon',name:'Vielliard & Francheteau Architectures',city:'Écully',phone:'09 55 88 41 63',email:'',site:'vf-architectures.fr'},
   {id:'l03',zone:'Lyon',name:'Laurent Guillaud-Lozanne',city:'Champagne-au-Mont-d\'Or',phone:'04 28 29 15 29',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
@@ -375,6 +375,10 @@ const AGENCIES = [
   {id:'l53',zone:'Lyon',name:'Les Piliers du Bâtiment',city:'Villefranche-sur-Saône',phone:'',email:'q.v@lespiliersdubatiment.fr',site:'lespiliersdubatiment.fr'},
   {id:'l54',zone:'Lyon',name:'DECOVALOR',city:'Lyon',phone:'06 64 32 56 90',email:'laurerousselet@decovalor.fr',site:'decovalor.fr'},
   {id:'l55',zone:'Lyon',name:'Mélanie Rousset',city:'Guilherand-Granges',phone:'06 70 32 50 83',email:'agence@melanierousset.com',site:'melanierousset.com'},
+  {id:'l56',zone:'Lyon',name:'SB Design',city:'Chassieu',phone:'06 09 45 92 45',email:'info@sbdesign.fr',site:'sbdesign.fr'},
+  {id:'l57',zone:'Lyon',name:'Hervé Moreau',city:'Lyon',phone:'',email:'',site:'hm-designer.com'},
+  {id:'l58',zone:'Lyon',name:'Candice Bruny',city:'Lyon',phone:'',email:'',site:'candicebruny.com'},
+  {id:'l59',zone:'Lyon',name:'Géraldine Contet Atelier',city:'Lyon',phone:'',email:'job@geraldinecontet.com',site:'geraldinecontet.com'},
   // ── ZONE ALPES (38) ─────────────────────────────
   {id:'a01',zone:'Alpes',name:'580 Rive Est',city:'Menthon-St-Bernard',phone:'06 75 34 97 15',email:'info@580riveest.fr',site:'580riveest.fr'},
   {id:'a02',zone:'Alpes',name:'Archidomo Architecture',city:'Talloires-Montmin',phone:'04 50 46 06 24',email:'contact@archidomo.fr',site:'archidomo.fr'},
@@ -424,7 +428,7 @@ const AGENCIES = [
   {id:'a46',zone:'Alpes',name:'Doma Architectes',city:'Annecy',phone:'',email:'',site:'doma-architectes.fr'},
   {id:'a47',zone:'Alpes',name:'Architéa Megève',city:'Megève',phone:'',email:'',site:'architea.fr'},
   {id:'a48',zone:'Alpes',name:'Unique Intérieur',city:'Méribel',phone:'',email:'',site:'unique-interieur.com'},
-  // ── ZONE SUD (43) ───────────────────────────────
+  // ── ZONE SUD (54) ───────────────────────────────
   {id:'s01',zone:'Sud',name:'Laurent Guillaud-Lozanne (St-Tropez)',city:'Saint-Tropez',phone:'04 22 14 66 35',email:'contact@guillaudlozanne.com',site:'guillaudlozanne.com'},
   {id:'s02',zone:'Sud',name:'Atelier Sabrina Carlevaris',city:'Gassin',phone:'06 15 50 13 64',email:'sabrina@ateliercarlevaris.com',site:'sabrinacarlevaris.com'},
   {id:'s03',zone:'Sud',name:'CBG Architecture & Urbanisme',city:'Port Grimaud',phone:'04 94 56 30 34',email:'contact@cbgarchitecture.com',site:'cbgarchitecture.com'},
@@ -483,13 +487,24 @@ const AGENCIES = [
   {id:'s56',zone:'Sud',name:'Sergent Architecture',city:'Saint-Raphaël',phone:'04 94 95 27 34',email:'',site:'sergent-sarre.fr'},
   {id:'s57',zone:'Sud',name:'Luxoria Interiors',city:'Nice',phone:'',email:'',site:'luxoria.fr'},
   {id:'s58',zone:'Sud',name:'Nathalie Ludwig',city:'Mougins',phone:'',email:'',site:'nathalieludwig.com'},
-  // ── ZONE AUTRES (6) ─────────────────────────────
+  {id:'s59',zone:'Sud',name:'Margaux Aubery',city:'Saint-Tropez',phone:'',email:'',site:'margauxaubery-architecture.com'},
+  {id:'s60',zone:'Sud',name:'Séverine Bonmartin',city:'Ramatuelle',phone:'',email:'',site:'severinebonmartin.com'},
+  {id:'s61',zone:'Sud',name:'Vincent Coste Architecte',city:'Saint-Tropez',phone:'',email:'',site:'vincentcoste.com'},
+  {id:'s62',zone:'Sud',name:'Maison A&G',city:'Cannes',phone:'',email:'',site:'maison-aetg.com'},
+  {id:'s63',zone:'Sud',name:'Atelier San Gregorio',city:'Saint-Aygulf',phone:'04 94 96 40 84',email:'',site:'ateliersangregorio.fr'},
+  {id:'s64',zone:'Sud',name:'Architectes & Construction',city:'Sainte-Maxime',phone:'',email:'',site:'architectes-construction.com'},
+  {id:'s65',zone:'Sud',name:'ARQA Projects',city:'Saint-Tropez',phone:'',email:'',site:'arqaprojects.com'},
+  {id:'s66',zone:'Sud',name:'Joe Aoun Architecture',city:'Côte d\'Azur',phone:'',email:'',site:''},
+  {id:'s67',zone:'Sud',name:'By Maryan Architecture',city:'Cannes',phone:'',email:'',site:''},
+  {id:'s68',zone:'Sud',name:'Sébastien Romand Architecte',city:'Var',phone:'',email:'',site:'architectureromand.com'},
+  // ── ZONE AUTRES (7) ─────────────────────────────
   {id:'x01',zone:'Autres',name:'AAB Arcachon',city:'Arcachon',phone:'05 57 15 85 77',email:'contact@aab-archi.fr',site:'aab-arcachon.fr'},
   {id:'x02',zone:'Autres',name:'AFD Architecture Corse',city:'Folelli (Corse)',phone:'04 95 36 59 93',email:'contact@afd-architectes.fr',site:'afd-corse.fr'},
   {id:'x03',zone:'Autres',name:'Aoda Monaco',city:'Monaco',phone:'+377 93 500 678',email:'contact@aoda.mc',site:'aoda.mc'},
   {id:'x04',zone:'Autres',name:'Ksh Design',city:'Paris',phone:'06 14 62 20 68',email:'office@kshinfo.com',site:'kshinfo.com'},
   {id:'x05',zone:'Autres',name:'Watt Architecture',city:'Paris',phone:'04 72 18 84 74',email:'philippe.garampon@watt-db.com',site:'snef.fr'},
   {id:'x06',zone:'Autres',name:'Xavier Lemoine Architecte',city:'Paris 17e',phone:'01 55 06 08 15',email:'',site:'xavierlemoine.fr'},
+  {id:'x07',zone:'Autres',name:'SEGRAETI',city:'Monaco',phone:'',email:'',site:'segraeti.com'},
 ];
 
 // ═══════════════════════════════════════════════════
