@@ -664,7 +664,7 @@ function makeMailto(ag) {
   const tpl = mailTemplate
     .replace(/\{\{agence\}\}/g, ag.name)
     .replace(/\{\{ville\}\}/g, ag.city);
-  const subject = encodeURIComponent('Candidature stage architecture — Tom Maradan');
+  const subject = encodeURIComponent('Candidature stage architecture - Janvier/Avril - Tom Maradan');
   const body = encodeURIComponent(tpl);
   return `mailto:${ag.email}?subject=${subject}&body=${body}`;
 }
