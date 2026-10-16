@@ -626,6 +626,7 @@ maradantom@gmail.com
 Portfolio : https://Portfolio-Tom-Maradan`;
 
 let mailTemplate = DEFAULT_TEMPLATE;
+let mailSubject = 'Candidature stage architecture - Janvier/Avril - Tom Maradan';
 
 function handleEmailClick(evt, agId) {
   // Let the mailto open, then ask for confirmation after a short delay
@@ -664,7 +665,7 @@ function makeMailto(ag) {
   const tpl = mailTemplate
     .replace(/\{\{agence\}\}/g, ag.name)
     .replace(/\{\{ville\}\}/g, ag.city);
-  const subject = encodeURIComponent('Candidature stage architecture - Janvier/Avril - Tom Maradan');
+  const subject = encodeURIComponent(mailSubject);
   const body = encodeURIComponent(tpl);
   return `mailto:${ag.email}?subject=${subject}&body=${body}`;
 }
@@ -724,6 +725,9 @@ async function initData() {
       const mailDoc = await db.collection('settings').doc('mail').get();
       if (mailDoc.exists && mailDoc.data().template) {
         mailTemplate = mailDoc.data().template;
+      }
+      if (mailDoc.exists && mailDoc.data().subject) {
+        mailSubject = mailDoc.data().subject;
       }
     } catch(e) { /* si pas encore créé, on garde le défaut */ }
 

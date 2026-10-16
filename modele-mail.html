@@ -90,6 +90,17 @@
 <div id="scroll-area">
   <div class="page-wrap">
 
+    <!-- OBJET -->
+    <div class="card">
+      <h2>📌 Objet du mail</h2>
+      <input type="text" id="subject-in" style="width:100%;box-sizing:border-box;padding:.6rem .8rem;border:1px solid #e2e8f0;border-radius:8px;font-size:.9rem;font-family:inherit;margin-top:.3rem" placeholder="Objet du mail…" />
+      <div class="actions" style="margin-top:.8rem">
+        <button class="btn btn-save" onclick="saveSubject()">💾 Sauvegarder l'objet</button>
+        <button class="btn btn-reset" onclick="resetSubject()">↺ Par défaut</button>
+        <span id="status-msg-subject"></span>
+      </div>
+    </div>
+
     <!-- ÉDITEUR -->
     <div class="card">
       <h2>✏️ Votre lettre</h2>
@@ -121,7 +132,7 @@
       <p style="font-size:.82rem;line-height:1.7;color:#555;margin-top:.5rem">
         Dans le <strong>tableau de suivi</strong>, cliquez sur l'adresse email d'une agence (en violet).<br>
         Votre messagerie s'ouvre automatiquement avec :<br>
-        — l'objet déjà rempli : <em>"Candidature stage architecture — Tom Maradan"</em><br>
+        — l'objet que vous avez configuré ci-dessus<br>
         — ce texte pré-rempli, avec <code style="background:#ede9fe;padding:.1rem .3rem;border-radius:4px;color:#7c3aed">{{agence}}</code> remplacé par le nom réel de l'agence<br>
         — et <code style="background:#ede9fe;padding:.1rem .3rem;border-radius:4px;color:#7c3aed">{{ville}}</code> remplacé par la ville.<br><br>
         Il ne vous reste plus qu'à <strong>joindre votre CV et envoyer</strong> !
@@ -158,6 +169,8 @@ const db = firebase.firestore();
 // ═══════════════════════════════════════════════════
 // MODÈLE PAR DÉFAUT
 // ═══════════════════════════════════════════════════
+const DEFAULT_SUBJECT = 'Candidature stage architecture - Janvier/Avril - Tom Maradan';
+
 const DEFAULT_TEMPLATE = `Madame, Monsieur,
 
 Étudiant en 4ème année d'école d'architecture à CREAD Lyon, je souhaite découvrir un cabinet d'architecture qui réalise des projets haut de gamme.
@@ -194,6 +207,26 @@ function updatePreview() {
 // ═══════════════════════════════════════════════════
 // SAVE
 // ═══════════════════════════════════════════════════
+async function saveSubject() {
+  const subj = document.getElementById('subject-in').value.trim();
+  const msg = document.getElementById('status-msg-subject');
+  if (!subj) return;
+  try {
+    await db.collection('settings').doc('mail').set({subject: subj}, {merge: true});
+    msg.textContent = '✓ Sauvegardé !';
+    msg.className = 'show ok';
+    setTimeout(() => msg.className = '', 2500);
+  } catch(e) {
+    msg.textContent = '⚠️ Erreur';
+    msg.className = 'show err';
+    setTimeout(() => msg.className = '', 3000);
+  }
+}
+
+function resetSubject() {
+  document.getElementById('subject-in').value = DEFAULT_SUBJECT;
+}
+
 async function saveTemplate() {
   const tpl = document.getElementById('template-ta').value.trim();
   const msg = document.getElementById('status-msg');
@@ -223,12 +256,15 @@ async function init() {
   try {
     const doc = await db.collection('settings').doc('mail').get();
     const tpl = (doc.exists && doc.data().template) ? doc.data().template : DEFAULT_TEMPLATE;
+    const subj = (doc.exists && doc.data().subject) ? doc.data().subject : DEFAULT_SUBJECT;
+    document.getElementById('subject-in').value = subj;
     document.getElementById('template-ta').value = tpl;
     updatePreview();
     document.getElementById('loading-screen').style.display = 'none';
     adjustLayout();
   } catch(e) {
     console.error(e);
+    document.getElementById('subject-in').value = DEFAULT_SUBJECT;
     document.getElementById('template-ta').value = DEFAULT_TEMPLATE;
     updatePreview();
     document.getElementById('loading-screen').style.display = 'none';
