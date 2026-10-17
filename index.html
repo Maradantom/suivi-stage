@@ -914,6 +914,8 @@ async function deleteAgency(id) {
 
 function editCell(td, id, field, currentVal) {
   if (td.querySelector('input.cell-input')) return;
+  // Read current value from data attribute if available (avoids HTML encoding issues)
+  if (td.dataset.editVal !== undefined) currentVal = td.dataset.editVal;
   const prev = td.innerHTML;
   td.innerHTML = '';
   const inp = document.createElement('input');
@@ -989,12 +991,12 @@ function renderTable() {
       <td style="color:#bbb;font-size:.72rem;text-align:right">${i+1}</td>
       <td style="text-align:center"><span class="star ${e.prio?'on':''}" data-id="${ag.id}" onclick="togglePrio('${ag.id}',this)">★</span></td>
       <td style="text-align:center"><span class="int-dot ${e.interest||''}" title="${e.interest==='green'?'Oui — envoi prévu':e.interest==='orange'?'Peut-être':'Pas encore décidé'}" onclick="cycleInterest('${ag.id}',this)"></span></td>
-      <td style="font-weight:600;min-width:160px" class="editable-td" onclick="editCell(this,'${ag.id}','name','${name.replace(/'/g,"&#39;")}')">${name}</td>
+      <td style="font-weight:600;min-width:160px" class="editable-td" data-edit-val="${name.replace(/"/g,'&quot;')}" onclick="editCell(this,'${ag.id}','name','')">${name}</td>
       <td>${zoneBadge(ag.zone)}</td>
-      <td style="color:#555;white-space:nowrap;font-size:.78rem" class="editable-td" onclick="editCell(this,'${ag.id}','city','${city.replace(/'/g,"&#39;")}')">${city}</td>
-      <td class="addr-td editable-td" onclick="editCell(this,'${ag.id}','address','${adresse.replace(/'/g,"&#39;")}')">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
-      <td class="phone-td editable-td" ondblclick="editCell(this,'${ag.id}','phone','${phone.replace(/'/g,"&#39;")}')">${phoneHtml}</td>
-      <td class="email-td editable-td" ondblclick="editCell(this,'${ag.id}','email','${email.replace(/'/g,"&#39;")}')">${emailHtml}</td>
+      <td style="color:#555;white-space:nowrap;font-size:.78rem" class="editable-td" data-edit-val="${city.replace(/"/g,'&quot;')}" onclick="editCell(this,'${ag.id}','city','')">${city}</td>
+      <td class="addr-td editable-td" data-edit-val="${adresse.replace(/"/g,'&quot;')}" onclick="editCell(this,'${ag.id}','address','')">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
+      <td class="phone-td editable-td" data-edit-val="${phone.replace(/"/g,'&quot;')}" ondblclick="editCell(this,'${ag.id}','phone','')">${phoneHtml}</td>
+      <td class="email-td editable-td" data-edit-val="${email.replace(/"/g,'&quot;')}" ondblclick="editCell(this,'${ag.id}','email','')">${emailHtml}</td>
       <td class="editable-td" ondblclick="editCell(this,'${ag.id}','site','${site.replace(/'/g,"&#39;")}')" style="font-size:.78rem"><a class="site-lnk" href="https://${site}" target="_blank">${site}</a></td>
       <td>
         <select class="status-sel ${st.cls}" data-id="${ag.id}" onchange="changeStatus('${ag.id}',this)">
