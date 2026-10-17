@@ -93,6 +93,11 @@
     .star{cursor:pointer;font-size:1rem;color:#ddd;transition:color .1s}
     .star.on{color:#f59e0b}
     .star:hover{color:#f59e0b}
+    /* INTEREST DOT */
+    .int-dot{cursor:pointer;width:11px;height:11px;border-radius:50%;border:2px solid #ddd;background:transparent;display:inline-block;transition:all .15s;flex-shrink:0}
+    .int-dot.green{background:#16a34a;border-color:#16a34a}
+    .int-dot.orange{background:#f97316;border-color:#f97316}
+    .int-dot:hover{border-color:#888}
     /* LINKS */
     a.site-lnk{color:#1d4ed8;text-decoration:none;font-size:.78rem}
     a.site-lnk:hover{text-decoration:underline}
@@ -269,6 +274,7 @@
         <tr>
           <th style="width:28px">#</th>
           <th onclick="sortBy('prio')" title="Trier par priorité">⭐</th>
+          <th title="Intérêt : vert = oui, orange = peut-être" style="width:20px"></th>
           <th onclick="sortBy('name')">Agence ↕</th>
           <th onclick="sortBy('zone')">Zone ↕</th>
           <th onclick="sortBy('city')">Ville ↕</th>
@@ -690,11 +696,11 @@ const STATUSES = {
 let data = {};
 
 function getEntry(id) {
-  return data[id] || {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
+  return data[id] || {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false, interest:''};
 }
 
 async function saveEntry(id, field, val) {
-  if (!data[id]) data[id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
+  if (!data[id]) data[id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false, interest:''};
   data[id][field] = val;
   try {
     // Si l'adresse change, effacer les coords géocodées pour forcer un nouveau géocodage sur la carte
@@ -759,8 +765,8 @@ async function initData() {
       const batch = db.batch();
       missing.forEach(ag => {
         const ref = db.collection(COL).doc(ag.id);
-        batch.set(ref, {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false});
-        data[ag.id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false};
+        batch.set(ref, {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false, interest:''});
+        data[ag.id] = {status:'nc', contactDate:'', relanceDate:'', notes:'', prio:false, interest:''};
       });
       await batch.commit();
     }
@@ -976,6 +982,7 @@ function renderTable() {
     tr.innerHTML = `
       <td style="color:#bbb;font-size:.72rem;text-align:right">${i+1}</td>
       <td style="text-align:center"><span class="star ${e.prio?'on':''}" data-id="${ag.id}" onclick="togglePrio('${ag.id}',this)">★</span></td>
+      <td style="text-align:center"><span class="int-dot ${e.interest||''}" title="${e.interest==='green'?'Oui — envoi prévu':e.interest==='orange'?'Peut-être':'Pas encore décidé'}" onclick="cycleInterest('${ag.id}',this)"></span></td>
       <td style="font-weight:600;min-width:160px" class="editable-td" onclick="editCell(this,'${ag.id}','name','${name.replace(/'/g,"&#39;")}')">${name}</td>
       <td>${zoneBadge(ag.zone)}</td>
       <td style="color:#555;white-space:nowrap;font-size:.78rem" class="editable-td" onclick="editCell(this,'${ag.id}','city','${city.replace(/'/g,"&#39;")}')">${city}</td>
@@ -1030,6 +1037,16 @@ function togglePrio(id, el) {
   saveEntry(id, 'prio', newVal);
   el.classList.toggle('on', newVal);
   updateStats();
+}
+
+function cycleInterest(id, el) {
+  const e = getEntry(id);
+  const cycle = {'': 'green', 'green': 'orange', 'orange': ''};
+  const newVal = cycle[e.interest || ''];
+  saveEntry(id, 'interest', newVal);
+  el.className = 'int-dot ' + newVal;
+  const titles = {'green': 'Oui — envoi prévu', 'orange': 'Peut-être', '': 'Pas encore décidé'};
+  el.title = titles[newVal];
 }
 
 function autoRelance(id) {
