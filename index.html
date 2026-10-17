@@ -1230,7 +1230,7 @@ function updateStats() {
     if (counts[e.status] !== undefined) counts[e.status]++;
     if (e.prio) counts.prio++;
   });
-  document.getElementById('cnt-all').textContent = AGENCIES.length;
+  document.getElementById('cnt-all').textContent = AGENCIES.filter(ag => !getEntry(ag.id)._hidden).length;
   ['nc','em','r1','r2','rp','en','ok','prio'].forEach(k => {
     const el = document.getElementById('cnt-'+k);
     if (el) el.textContent = counts[k] || 0;
