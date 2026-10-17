@@ -1011,7 +1011,7 @@ function renderTable() {
         ${overdue?'<br><span style="color:#dc2626;font-size:.68rem;font-weight:700">EN RETARD</span>':''}
         ${todayRel&&!overdue?'<br><span style="color:#d97706;font-size:.68rem;font-weight:700">AUJOURD\'HUI</span>':''}
       </td>
-      <td class="socials-td" title="Double-clic pour modifier les réseaux" ondblclick="editSocials('${ag.id}')">${renderSocials('${ag.id}', e.socials)}</td>
+      <td class="socials-td" title="Double-clic pour modifier les réseaux" ondblclick="editSocials('${ag.id}')">${renderSocials(ag.id, e.socials)}</td>
       <td class="notes-td">
         <textarea class="note-ta" rows="1"
           onchange="saveEntry('${ag.id}','notes',this.value)"
