@@ -265,6 +265,13 @@
       <button class="zone-pill" data-zone="Sud" onclick="setZone(this)">Sud</button>
       <button class="zone-pill" data-zone="Autres" onclick="setZone(this)">Autres</button>
     </div>
+    <label class="ctrl-lbl">Intérêt</label>
+    <div id="int-pills" style="display:flex;gap:.4rem">
+      <button class="zone-pill active" data-int="" onclick="setInt(this)" title="Tous">Tous</button>
+      <button class="zone-pill" data-int="green" onclick="setInt(this)" title="Oui" style="display:flex;align-items:center;gap:.35rem"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e"></span>Oui</button>
+      <button class="zone-pill" data-int="orange" onclick="setInt(this)" title="Peut-être" style="display:flex;align-items:center;gap:.35rem"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#f97316"></span>Peut-être</button>
+      <button class="zone-pill" data-int="none" onclick="setInt(this)" title="Non décidé" style="display:flex;align-items:center;gap:.35rem"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e0e0e0;border:1px solid #ccc"></span>Non décidé</button>
+    </div>
     <label class="ctrl-lbl">Recherche</label>
     <input type="text" id="search" placeholder="Nom, ville, site..."/>
     <button class="btn btn-dark" onclick="resetAllFilters()">↺ Tout afficher</button>
@@ -911,9 +918,15 @@ async function editZone(id, td) {
 // RENDER
 // ═══════════════════════════════════════════════════
 let activeZone = '';
+let activeInt = '';
 function setZone(btn) {
   activeZone = btn.dataset.zone;
-  document.querySelectorAll('.zone-pill').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('#zone-pills .zone-pill').forEach(b => b.classList.toggle('active', b === btn));
+  renderTable();
+}
+function setInt(btn) {
+  activeInt = btn.dataset.int;
+  document.querySelectorAll('#int-pills .zone-pill').forEach(b => b.classList.toggle('active', b === btn));
   renderTable();
 }
 
@@ -927,6 +940,9 @@ function getFiltered() {
     if (zf && agZone !== zf) return false;
     const addr = (ADDRESSES[ag.id]||'').toLowerCase();
     if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf) && !addr.includes(sf)) return false;
+    if (activeInt === 'green' && e.interest !== 'green') return false;
+    if (activeInt === 'orange' && e.interest !== 'orange') return false;
+    if (activeInt === 'none' && (e.interest === 'green' || e.interest === 'orange')) return false;
     if (activeFilter === 'prio') return e.prio;
     if (activeFilter !== 'all' && e.status !== activeFilter) return false;
     return true;
@@ -1302,9 +1318,11 @@ function sortBy(key) {
 function resetAllFilters() {
   activeFilter = 'all';
   activeZone = '';
+  activeInt = '';
   document.getElementById('search').value = '';
   document.querySelectorAll('.stat-pill').forEach(p => p.classList.toggle('active', p.dataset.filter==='all'));
-  document.querySelectorAll('.zone-pill').forEach(b => b.classList.toggle('active', b.dataset.zone===''));
+  document.querySelectorAll('#zone-pills .zone-pill').forEach(b => b.classList.toggle('active', b.dataset.zone===''));
+  document.querySelectorAll('#int-pills .zone-pill').forEach(b => b.classList.toggle('active', b.dataset.int===''));
   renderTable();
 }
 
