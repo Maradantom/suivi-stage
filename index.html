@@ -281,7 +281,7 @@
         <tr>
           <th style="width:28px">#</th>
           <th onclick="sortBy('prio')" title="Trier par priorité">⭐</th>
-          <th title="Intérêt : vert = oui, orange = peut-être" style="width:20px"></th>
+          <th id="int-filter-th" style="width:20px;cursor:pointer;text-align:center" onclick="cycleIntFilter(this)" title="Filtrer par intérêt"><span id="int-filter-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #888;background:transparent;transition:all .15s"></span></th>
           <th onclick="sortBy('name')">Agence ↕</th>
           <th onclick="sortBy('zone')">Zone ↕</th>
           <th onclick="sortBy('city')">Ville ↕</th>
@@ -911,6 +911,24 @@ async function editZone(id, td) {
 // RENDER
 // ═══════════════════════════════════════════════════
 let activeZone = '';
+let activeInt = ''; // '' = tous, 'green', 'orange', 'none'
+const INT_CYCLE = ['', 'green', 'orange', 'none'];
+const INT_DOT_STYLE = {
+  '':      {bg:'transparent', border:'#888'},
+  'green': {bg:'#16a34a',     border:'#16a34a'},
+  'orange':{bg:'#f97316',     border:'#f97316'},
+  'none':  {bg:'#d1d5db',     border:'#9ca3af'},
+};
+function cycleIntFilter(th) {
+  const idx = (INT_CYCLE.indexOf(activeInt) + 1) % INT_CYCLE.length;
+  activeInt = INT_CYCLE[idx];
+  const s = INT_DOT_STYLE[activeInt];
+  const dot = document.getElementById('int-filter-dot');
+  dot.style.background = s.bg;
+  dot.style.borderColor = s.border;
+  th.style.opacity = activeInt ? '1' : '.5';
+  renderTable();
+}
 function setZone(btn) {
   activeZone = btn.dataset.zone;
   document.querySelectorAll('#zone-pills .zone-pill').forEach(b => b.classList.toggle('active', b === btn));
@@ -927,6 +945,9 @@ function getFiltered() {
     if (zf && agZone !== zf) return false;
     const addr = (ADDRESSES[ag.id]||'').toLowerCase();
     if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf) && !addr.includes(sf)) return false;
+    if (activeInt === 'green' && e.interest !== 'green') return false;
+    if (activeInt === 'orange' && e.interest !== 'orange') return false;
+    if (activeInt === 'none' && (e.interest === 'green' || e.interest === 'orange')) return false;
     if (activeFilter === 'prio') return e.prio;
     if (activeFilter !== 'all' && e.status !== activeFilter) return false;
     return true;
@@ -1302,6 +1323,11 @@ function sortBy(key) {
 function resetAllFilters() {
   activeFilter = 'all';
   activeZone = '';
+  activeInt = '';
+  const dot = document.getElementById('int-filter-dot');
+  if (dot) { dot.style.background='transparent'; dot.style.borderColor='#888'; }
+  const th = document.getElementById('int-filter-th');
+  if (th) th.style.opacity = '.5';
   document.getElementById('search').value = '';
   document.querySelectorAll('.stat-pill').forEach(p => p.classList.toggle('active', p.dataset.filter==='all'));
   document.querySelectorAll('#zone-pills .zone-pill').forEach(b => b.classList.toggle('active', b.dataset.zone===''));
