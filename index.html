@@ -14,7 +14,7 @@
     /* FIXED HEADER */
     #fixed-header{position:fixed;top:0;left:0;right:0;z-index:100}
     /* SCROLL AREA */
-    #scroll-area{position:fixed;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:auto;background:#f5f4f1}
+    #scroll-area{position:fixed;top:120px;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:auto;background:#f5f4f1}
     /* NAV */
     nav{background:#111;display:flex;gap:0;border-bottom:1px solid #333;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
     nav::-webkit-scrollbar{display:none}
@@ -45,9 +45,11 @@
     .alert.show{display:block}
     /* CONTROLS */
     .controls{background:#fff;border-bottom:1px solid #e5e5e5;padding:.7rem 1.5rem;display:flex;gap:.7rem;align-items:center;flex-wrap:wrap}
-    .controls input,.controls select{border:1px solid #ddd;border-radius:6px;padding:.4rem .7rem;font-size:.8rem;background:#fff;color:#1a1a1a}
-    .controls input{width:200px}
-    .controls input:focus,.controls select:focus{outline:none;border-color:#1a1a1a}
+    .controls input{border:1px solid #ddd;border-radius:6px;padding:.4rem .7rem;font-size:.8rem;background:#fff;color:#1a1a1a;width:200px}
+    .controls input:focus{outline:none;border-color:#1a1a1a}
+    .zone-pill{background:#f5f5f5;border:2px solid transparent;border-radius:20px;padding:.25rem .75rem;font-size:.75rem;font-weight:600;cursor:pointer;transition:border-color .15s,background .15s;color:#1a1a1a}
+    .zone-pill:hover{border-color:#1a1a1a}
+    .zone-pill.active{border-color:#1a1a1a;background:#1a1a1a;color:#fff}
     label.ctrl-lbl{font-size:.75rem;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
     .btn{border:none;border-radius:6px;padding:.4rem 1rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .15s}
     .btn-dark{background:#1a1a1a;color:#fff}.btn-dark:hover{background:#333}
@@ -256,13 +258,13 @@
 
   <div class="controls">
     <label class="ctrl-lbl">Zone</label>
-    <select id="zone-filter">
-      <option value="">Toutes</option>
-      <option value="Lyon">Lyon</option>
-      <option value="Alpes">Alpes</option>
-      <option value="Sud">Sud</option>
-      <option value="Autres">Autres</option>
-    </select>
+    <div id="zone-pills" style="display:flex;gap:.4rem;flex-wrap:wrap">
+      <button class="zone-pill active" data-zone="" onclick="setZone(this)">Toutes</button>
+      <button class="zone-pill" data-zone="Lyon" onclick="setZone(this)">Lyon</button>
+      <button class="zone-pill" data-zone="Alpes" onclick="setZone(this)">Alpes</button>
+      <button class="zone-pill" data-zone="Sud" onclick="setZone(this)">Sud</button>
+      <button class="zone-pill" data-zone="Autres" onclick="setZone(this)">Autres</button>
+    </div>
     <label class="ctrl-lbl">Recherche</label>
     <input type="text" id="search" placeholder="Nom, ville, site..."/>
     <button class="btn btn-dark" onclick="resetAllFilters()">↺ Tout afficher</button>
@@ -882,8 +884,15 @@ function zoneBadge(zone) {
 // ═══════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════
+let activeZone = '';
+function setZone(btn) {
+  activeZone = btn.dataset.zone;
+  document.querySelectorAll('.zone-pill').forEach(b => b.classList.toggle('active', b === btn));
+  renderTable();
+}
+
 function getFiltered() {
-  const zf = document.getElementById('zone-filter').value;
+  const zf = activeZone;
   const sf = document.getElementById('search').value.toLowerCase();
   return AGENCIES.filter(ag => {
     const e = getEntry(ag.id);
@@ -1229,6 +1238,7 @@ function updateStats() {
   const counts = {nc:0,em:0,r1:0,r2:0,rp:0,en:0,ok:0,rf:0,prio:0};
   AGENCIES.forEach(ag => {
     const e = getEntry(ag.id);
+    if (e._hidden) return;
     if (counts[e.status] !== undefined) counts[e.status]++;
     if (e.prio) counts.prio++;
   });
@@ -1263,9 +1273,10 @@ function sortBy(key) {
 
 function resetAllFilters() {
   activeFilter = 'all';
-  document.getElementById('zone-filter').value = '';
+  activeZone = '';
   document.getElementById('search').value = '';
   document.querySelectorAll('.stat-pill').forEach(p => p.classList.toggle('active', p.dataset.filter==='all'));
+  document.querySelectorAll('.zone-pill').forEach(b => b.classList.toggle('active', b.dataset.zone===''));
   renderTable();
 }
 
@@ -1308,7 +1319,7 @@ document.querySelectorAll('.stat-pill').forEach(pill => {
     renderTable();
   });
 });
-document.getElementById('zone-filter').addEventListener('change', renderTable);
+// zone-filter replaced by zone-pill buttons
 document.getElementById('search').addEventListener('input', renderTable);
 
 // Fermer le modal avec Escape
