@@ -881,6 +881,32 @@ function zoneBadge(zone) {
   return `<span class="badge ${map[zone]||'b-autres'}">${zone}</span>`;
 }
 
+async function editZone(id, td) {
+  if (td.querySelector('select')) return;
+  const ag = AGENCIES.find(a => a.id === id);
+  const e2 = getEntry(id);
+  const current = e2.zone !== undefined ? e2.zone : ag.zone;
+  const sel = document.createElement('select');
+  sel.style.cssText = 'border:1px solid #ccc;border-radius:6px;padding:.2rem .4rem;font-size:.75rem;font-weight:600;cursor:pointer';
+  ['Lyon','Alpes','Sud','Autres'].forEach(z => {
+    const o = document.createElement('option');
+    o.value = z; o.textContent = z;
+    if (z === current) o.selected = true;
+    sel.appendChild(o);
+  });
+  td.innerHTML = '';
+  td.appendChild(sel);
+  sel.focus();
+  sel.addEventListener('change', async () => {
+    const newZone = sel.value;
+    ag.zone = newZone;
+    await saveEntry(id, 'zone', newZone);
+    renderTable();
+  });
+  sel.addEventListener('blur', () => renderTable());
+  sel.addEventListener('click', e => e.stopPropagation());
+}
+
 // ═══════════════════════════════════════════════════
 // RENDER
 // ═══════════════════════════════════════════════════
@@ -897,7 +923,8 @@ function getFiltered() {
   return AGENCIES.filter(ag => {
     const e = getEntry(ag.id);
     if (e._hidden) return false;
-    if (zf && ag.zone !== zf) return false;
+    const agZone = e.zone || ag.zone;
+    if (zf && agZone !== zf) return false;
     const addr = (ADDRESSES[ag.id]||'').toLowerCase();
     if (sf && !ag.name.toLowerCase().includes(sf) && !ag.city.toLowerCase().includes(sf) && !ag.site.toLowerCase().includes(sf) && !addr.includes(sf)) return false;
     if (activeFilter === 'prio') return e.prio;
@@ -981,6 +1008,7 @@ function renderTable() {
     const email = e.email  !== undefined ? e.email  : ag.email;
     const site  = e.site   !== undefined ? e.site   : ag.site;
     const city  = e.city   !== undefined ? e.city   : ag.city;
+    const zone  = e.zone   !== undefined ? e.zone   : ag.zone;
     const name  = e.name   !== undefined ? e.name   : ag.name;
     const adresse = e.address !== undefined ? e.address : (ADDRESSES[ag.id] || '');
     const phoneHtml = phone
@@ -1001,7 +1029,7 @@ function renderTable() {
       <td style="text-align:center"><span class="star ${e.prio?'on':''}" data-id="${ag.id}" onclick="togglePrio('${ag.id}',this)">★</span></td>
       <td style="text-align:center"><span class="int-dot ${e.interest||''}" title="${e.interest==='green'?'Oui — envoi prévu':e.interest==='orange'?'Peut-être':'Pas encore décidé'}" onclick="cycleInterest('${ag.id}',this)"></span></td>
       <td style="font-weight:600;min-width:160px" class="editable-td" data-edit-val="${name.replace(/"/g,'&quot;')}" onclick="editCell(this,'${ag.id}','name','')">${name}</td>
-      <td>${zoneBadge(ag.zone)}</td>
+      <td class="editable-td" style="cursor:pointer" onclick="editZone('${ag.id}', this)">${zoneBadge(zone)}</td>
       <td style="color:#555;white-space:nowrap;font-size:.78rem" class="editable-td" data-edit-val="${city.replace(/"/g,'&quot;')}" onclick="editCell(this,'${ag.id}','city','')">${city}</td>
       <td class="addr-td editable-td" data-edit-val="${adresse.replace(/"/g,'&quot;')}" onclick="editCell(this,'${ag.id}','address','')">${adresse || '<span style="color:#e0e0e0">—</span>'}</td>
       <td class="phone-td editable-td" data-edit-val="${phone.replace(/"/g,'&quot;')}" ondblclick="editCell(this,'${ag.id}','phone','')">${phoneHtml}</td>
