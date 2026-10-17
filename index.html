@@ -1011,7 +1011,7 @@ function renderTable() {
         ${overdue?'<br><span style="color:#dc2626;font-size:.68rem;font-weight:700">EN RETARD</span>':''}
         ${todayRel&&!overdue?'<br><span style="color:#d97706;font-size:.68rem;font-weight:700">AUJOURD\'HUI</span>':''}
       </td>
-      <td class="socials-td" title="Double-clic pour modifier les réseaux" ondblclick="editSocials('${ag.id}')">${renderSocials(e.socials)}</td>
+      <td class="socials-td" title="Double-clic pour modifier les réseaux" ondblclick="editSocials('${ag.id}')">${renderSocials('${ag.id}', e.socials)}</td>
       <td class="notes-td">
         <textarea class="note-ta" rows="1"
           onchange="saveEntry('${ag.id}','notes',this.value)"
@@ -1038,7 +1038,112 @@ function changeStatus(id, sel) {
   renderTable();
 }
 
-// ── SOCIALS ─────────────────────────────────────────
+// ── SOCIALS DATA (pre-filled from research) ─────────
+const AGENCY_SOCIALS = {
+  'l02': {'ig':'https://www.instagram.com/architectes.vf','fb':'https://www.facebook.com/profile.php?id=100043676846565','pi':'https://www.pinterest.fr/thomasvielliardarchitectesasso/'},
+  'l04': {'ig':'https://www.instagram.com/sebastienbelle_a2sb/'},
+  'l05': {'ig':'https://www.instagram.com/cedric_dalliere_architecte/','fb':'https://www.facebook.com/C%C3%A9dric-Dalli%C3%A8re-architecte-927216830758898/','li':'https://www.linkedin.com/company/cedric-dalliere-architecte'},
+  'l06': {'ig':'https://www.instagram.com/ocubearchitecture/','li':'https://www.linkedin.com/company/ocube-architecture/'},
+  'l07': {'fb':'https://www.facebook.com/Claude-Veyret-Architecte-Maisons-Lofts-1750465511878874/','li':'https://www.linkedin.com/company/claude-veyret-architecte','pi':'https://www.pinterest.fr/ClaudeVeyretArchitecte/_saved/'},
+  'l08': {'ig':'https://www.instagram.com/martin_et_martin_architectes/','fb':'https://www.facebook.com/people/Martin-Martin-architectes/100056806724964/'},
+  'l09': {'ig':'https://www.instagram.com/arch2l/'},
+  'l10': {'li':'https://fr.linkedin.com/in/christophe-sarlandie-8694b969'},
+  'l11': {'ig':'https://www.instagram.com/studio_ladoit','fb':'https://www.facebook.com/studio.ladoit/','pi':'https://fr.pinterest.com/MargauxStudioladoit/'},
+  'l13': {'ig':'https://www.instagram.com/havahlyon/','fb':'https://www.facebook.com/www.havah.archi/','li':'https://www.linkedin.com/company/havah/'},
+  'l14': {'ig':'https://www.instagram.com/atelierocta_architecture/','fb':'https://www.facebook.com/atelierocta.architectureinterieure/','pi':'https://fr.pinterest.com/atelierocta_architecture/'},
+  'l16': {'ig':'https://www.instagram.com/ea.architectes','li':'https://www.linkedin.com/company/cubik-architecture/','pi':'https://www.pinterest.fr/cubikarchitecture/'},
+  'l17': {'ig':'https://www.instagram.com/dmarchitecte/','fb':'https://www.facebook.com/people/Delphine-Molin-Architecte/61566051310677/'},
+  'l18': {'ig':'https://instagram.com/agence_lanoe_marion/','fb':'https://www.facebook.com/architectedinterieur.lanoemarion','pi':'https://fr.pinterest.com/lanoemariondeco/'},
+  'l19': {'ig':'https://www.instagram.com/studio_anata/'},
+  'l24': {'ig':'https://www.instagram.com/aum_pierre_minassian/'},
+  'l25': {'ig':'https://www.instagram.com/bc.ateliers/','fb':'https://www.facebook.com/bcateliers/'},
+  'l26': {'ig':'https://www.instagram.com/by_architectes/','li':'https://www.linkedin.com/company/by-architectes/'},
+  'l27': {'ig':'https://www.instagram.com/dorga_david_burles/','fb':'https://www.facebook.com/DorgaDavidBurles'},
+  'l28': {'ig':'https://instagram.com/tourailleeric/','li':'https://linkedin.com/in/eric-touraille-10163069'},
+  'l38': {'ig':'https://www.instagram.com/agence_stephane_millet/','fb':'https://www.facebook.com/stephanemilletvai/','li':'https://www.linkedin.com/in/st%C3%A9phane-millet-lyon/'},
+  'l39': {'ig':'https://www.instagram.com/studiofb3/','fb':'https://www.facebook.com/florentbrunarchitecture/','li':'https://fr.linkedin.com/in/florent-brun-a52192110','pi':'https://www.pinterest.fr/studioFb3/'},
+  'l41': {'ig':'https://www.instagram.com/fleury_architecte_designer'},
+  'l43': {'ig':'https://www.instagram.com/architecture.craiecraie/','pi':'https://www.pinterest.fr/craiecraie/'},
+  'l44': {'ig':'https://www.instagram.com/refr.renovation','fb':'https://www.facebook.com/refr.renovation','li':'https://www.linkedin.com/company/tout-refaire-avec-refr'},
+  'l48': {'ig':'https://www.instagram.com/berkail.co','li':'https://www.linkedin.com/company/berkail-co/','pi':'https://www.pinterest.fr/Berkail_co/'},
+  'l50': {'ig':'https://www.instagram.com/rsd_agencements/','fb':'https://www.facebook.com/RSDagencements/'},
+  'l51': {'ig':'https://www.instagram.com/atelier_dito/'},
+  'l52': {'ig':'https://www.instagram.com/bansacjames_architecte/'},
+  'l53': {'ig':'https://www.instagram.com/lespiliersdubatiment/','fb':'https://www.facebook.com/p/Les-Piliers-du-B%C3%A2timent-100040968832456/','li':'https://fr.linkedin.com/company/les-piliers-du-b%C3%A2timent'},
+  'l54': {'fb':'https://www.facebook.com/rousseletlaure/'},
+  'l55': {'ig':'https://www.instagram.com/agence_melanierousset/','li':'https://www.linkedin.com/in/m%C3%A9lanie-rousset-71583619b/'},
+  'l57': {'ig':'https://www.instagram.com/agencehervemoreau/','fb':'https://www.facebook.com/agence.herve.moreau','li':'https://www.linkedin.com/company/agence-herv%C3%A9-moreau/'},
+  'l58': {'ig':'https://www.instagram.com/candicebruny/','fb':'https://www.facebook.com/candice.bruny.52','li':'https://www.linkedin.com/in/candice-bruny-964b81ab/'},
+  'l59': {'ig':'https://www.instagram.com/geraldine.contet.atelier/'},
+  'a02': {'ig':'https://www.instagram.com/archidomo_home_architecture/','li':'https://www.linkedin.com/company/archidomo-home-architecture'},
+  'a03': {'ig':'https://www.instagram.com/amevet_architecte_interieur/','fb':'https://www.facebook.com/amevet.architectes.interieur/','li':'https://www.linkedin.com/company/amevet-architecte-interieur/'},
+  'a04': {'ig':'https://www.instagram.com/groupedunoyer/','fb':'https://www.facebook.com/groupedunoyer/','li':'https://www.linkedin.com/company/groupe-dunoyer/'},
+  'a05': {'fb':'https://www.facebook.com/Favre-Libes-architectes-232120036984085/'},
+  'a06': {'ig':'https://www.instagram.com/annecyrealdear/','fb':'https://www.facebook.com/RealDearAnnecy','li':'https://www.linkedin.com/company/real-dear/'},
+  'a08': {'ig':'https://www.instagram.com/mvmzarchitecture/','fb':'https://www.facebook.com/mvmzarchitecture/'},
+  'a11': {'fb':'https://www.facebook.com/Architecture-Art-Project-SARL-2002742213387937/'},
+  'a12': {'ig':'https://www.instagram.com/chalets_grossetjanin/','li':'https://www.linkedin.com/company/grossetjanin/'},
+  'a14': {'fb':'https://www.facebook.com/LaforceArchitecture/'},
+  'a15': {'fb':'https://www.facebook.com/FedArch-Studio-cabinet-darchitecture-402921776434789/'},
+  'a16': {'ig':'https://www.instagram.com/chevallier_architectes/','fb':'https://www.facebook.com/chevallierarchitectes'},
+  'a17': {'fb':'https://www.facebook.com/ThuraArchitecture/'},
+  'a19': {'ig':'https://www.instagram.com/atelier_aulp/'},
+  'a20': {'ig':'https://www.instagram.com/ateliernovalp/','li':'https://www.linkedin.com/company/atelier-novalp'},
+  'a21': {'fb':'https://www.facebook.com/atelierbrunarchitectes'},
+  'a23': {'fb':'https://www.facebook.com/designdulac/'},
+  'a24': {'ig':'https://www.instagram.com/chaletdesign_architecture/','fb':'https://www.facebook.com/profile.php?id=100054366227337'},
+  'a25': {'ig':'https://www.instagram.com/chaletsbayrou/','fb':'https://www.facebook.com/chaletsbayrou'},
+  'a26': {'ig':'https://www.instagram.com/davinci_projets/','fb':'https://www.facebook.com/profile.php?id=100090708625648','li':'https://www.linkedin.com/company/davinci-projets/'},
+  'a27': {'ig':'https://www.instagram.com/maisonsedenhome/','fb':'https://www.facebook.com/sas4gedenhome/','li':'https://www.linkedin.com/company/eden-home/'},
+  'a28': {'ig':'https://www.instagram.com/groupedunoyer/','fb':'https://www.facebook.com/groupedunoyer/','li':'https://www.linkedin.com/company/groupe-dunoyer/','pi':'https://www.pinterest.com/groupedunoyer/'},
+  'a33': {'ig':'https://www.instagram.com/maamstudio.fr/','li':'https://www.linkedin.com/company/maamstudio/','pi':'https://www.pinterest.com/STUDIOMAAM/'},
+  'a34': {'ig':'https://www.instagram.com/maisonchiche/','fb':'https://www.facebook.com/profile.php?id=61560702760859'},
+  'a36': {'ig':'https://www.instagram.com/reia_architecture/','li':'https://www.linkedin.com/company/reia-architecture'},
+  'a42': {'ig':'https://www.instagram.com/seraphine_et_baptistine/'},
+  'a45': {'ig':'https://www.instagram.com/le_buro_courchevel/','fb':'https://www.facebook.com/3Massdesign'},
+  'a48': {'ig':'https://www.instagram.com/unique_interior_project/','pi':'https://www.pinterest.com/laureville/'},
+  's01': {'ig':'https://www.instagram.com/guillaudlozanne.architecte/','fb':'https://www.facebook.com/pages/Architecte-Laurent-Guillaud-Lozanne/1380435858920373','li':'https://fr.linkedin.com/in/laurent-guillaud-lozanne-19686893'},
+  's02': {'ig':'https://www.instagram.com/carlevaris_atelierarchitecture'},
+  's03': {'fb':'https://www.facebook.com/ateliercbg'},
+  's04': {'ig':'https://www.instagram.com/artelite_interieur/'},
+  's06': {'ig':'https://www.instagram.com/isabelle_allard_architecte/'},
+  's07': {'ig':'https://www.instagram.com/vx_architecture/','fb':'https://www.facebook.com/veronique.xueref.9/'},
+  's08': {'ig':'https://www.instagram.com/highfivearchitecture/','fb':'https://www.facebook.com/highfive.archi/','li':'https://www.linkedin.com/in/yann-melan-04a707186/'},
+  's10': {'ig':'https://www.instagram.com/atelierjeangouzyarchitecte/','fb':'https://www.facebook.com/Jeangouzyarchitecte/','li':'https://www.linkedin.com/company/atelier-jean-gouzy-architecte/','pi':'https://fr.pinterest.com/atelierjeangouzyarchitecte/'},
+  's11': {'ig':'https://www.instagram.com/atelierarchipelsud_architectes/'},
+  's12': {'ig':'https://www.instagram.com/coscolla.architecte/'},
+  's13': {'ig':'https://www.instagram.com/r.house.design/','li':'https://www.linkedin.com/company/r-house-design/'},
+  's14': {'ig':'https://www.instagram.com/marcouxmathernassocies/','fb':'https://www.facebook.com/profile.php?id=100075944768742','pi':'https://fr.pinterest.com/marcouxmathernassocies/'},
+  's15': {'ig':'https://www.instagram.com/inquarto_architecteassocies/','li':'https://www.linkedin.com/in/arthur-figliuzzi-b1b732b1/'},
+  's16': {'li':'https://www.linkedin.com/in/patrick-martin-5b3502192/'},
+  's17': {'ig':'https://www.instagram.com/fabiendurbano_architecture/','li':'https://www.linkedin.com/in/fabien-durbano'},
+  's18': {'ig':'https://www.instagram.com/architectes.vf','fb':'https://www.facebook.com/profile.php?id=100043676846565','pi':'https://www.pinterest.fr/thomasvielliardarchitectesasso/'},
+  's20': {'ig':'https://www.instagram.com/blue.architecture.06/','fb':'https://www.facebook.com/blue.architecture.french.riviera/','li':'https://www.linkedin.com/company/bluearchitecture'},
+  's23': {'ig':'https://www.instagram.com/daimon.design_architectes/','fb':'https://www.facebook.com/free.the.daimon','li':'https://www.linkedin.com/company/da%C3%AFmon-design/'},
+  's25': {'ig':'https://www.instagram.com/aagp_architecte/','fb':'https://www.facebook.com/AAGP.Architecture/','li':'https://www.linkedin.com/in/guillaume-pujol-a725b59a/'},
+  's29': {'ig':'https://www.instagram.com/ateliernb34/'},
+  's31': {'ig':'https://www.instagram.com/dmgcollection/','fb':'https://www.facebook.com/dmgcollection/','pi':'https://www.pinterest.fr/dmgcollection/'},
+  's33': {'ig':'https://www.instagram.com/everfair.group/','fb':'https://www.facebook.com/profile.php?id=61574834585057','li':'https://fr.linkedin.com/company/everfairgroup'},
+  's34': {'ig':'https://www.instagram.com/poudroux_architecte/'},
+  's35': {'ig':'https://www.instagram.com/jeanne_vieillecroze/'},
+  's36': {'ig':'https://www.instagram.com/julien_rhinn/','pi':'https://www.pinterest.fr/studiorby/'},
+  's37': {'ig':'https://www.instagram.com/krauze_studio/','fb':'https://www.facebook.com/people/Krauze-Studio/61564129560899/','pi':'https://fr.pinterest.com/krauzestudio/'},
+  's43': {'ig':'https://www.instagram.com/studio_pvg/','li':'https://www.linkedin.com/in/ana%C3%AFs-planavergne/'},
+  's47': {'ig':'https://www.instagram.com/jlfarchitecture/'},
+  's48': {'ig':'https://www.instagram.com/morphose.architecture/','fb':'https://www.facebook.com/morphosearchitecture/'},
+  's52': {'ig':'https://www.instagram.com/ynspir/','li':'https://www.linkedin.com/company/ynspir/','pi':'https://fr.pinterest.com/ynspir_deco/'},
+  's54': {'fb':'https://www.facebook.com/Smaltdesign/','pi':'https://www.pinterest.com/smaltdesign/'},
+  's55': {'li':'https://www.linkedin.com/company/caprini-%26-pellerin-architectes'},
+  's57': {'ig':'https://www.instagram.com/luxoria_interiors/','fb':'https://www.facebook.com/Luxoria/','li':'https://fr.linkedin.com/company/luxoria','pi':'https://www.pinterest.com/luxoria/'},
+  's59': {'ig':'https://www.instagram.com/margaux.aubery.architecture'},
+  's60': {'ig':'https://www.instagram.com/severine_bonmartin/'},
+  's61': {'ig':'https://www.instagram.com/vincentcostearchitecte/','fb':'https://www.facebook.com/vincentcostearchitecte','li':'https://www.linkedin.com/in/coste-vincent/','pi':'https://www.pinterest.fr/vincentcostearchitecte/'},
+  's62': {'ig':'https://www.instagram.com/maison_aetg/','li':'https://www.linkedin.com/company/audrey%26gabrielle-architectesdint%C3%A9rieur/'},
+  's63': {'ig':'https://www.instagram.com/ateliersangregorio','fb':'https://www.facebook.com/ateliersangregorio/','pi':'https://www.pinterest.fr/ateliersangregorio/'},
+  'x04': {'ig':'https://www.instagram.com/k.s.h.design/','pi':'https://www.pinterest.com/kshbureau/'},
+};
+
+// ── SOCIALS RENDER ───────────────────────────────────
 const SOCIAL_CFG = [
   {key:'ig',  label:'Instagram', color:'#E1306C', svg:'<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'},
   {key:'fb',  label:'Facebook',  color:'#1877F2', svg:'<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>'},
@@ -1046,17 +1151,18 @@ const SOCIAL_CFG = [
   {key:'pi',  label:'Pinterest', color:'#E60023', svg:'<svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.373 0 0 5.373 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.632-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>'},
 ];
 
-function renderSocials(socials) {
-  if (!socials) return '<span style="color:#e0e0e0;font-size:.7rem">—</span>';
-  return SOCIAL_CFG
+function renderSocials(agId, overrideSocials) {
+  const socials = (overrideSocials && Object.keys(overrideSocials).length) ? overrideSocials : (AGENCY_SOCIALS[agId] || {});
+  const icons = SOCIAL_CFG
     .filter(s => socials[s.key])
     .map(s => `<a href="${socials[s.key]}" target="_blank" class="social-ico" title="${s.label}" onclick="event.stopPropagation()"><div style="width:20px;height:20px;border-radius:5px;background:${s.color};display:flex;align-items:center;justify-content:center">${s.svg}</div></a>`)
-    .join('') || '<span style="color:#e0e0e0;font-size:.7rem">—</span>';
+    .join('');
+  return icons || '<span style="color:#e0e0e0;font-size:.7rem">—</span>';
 }
 
 function editSocials(id) {
   const e = getEntry(id);
-  const s = e.socials || {};
+  const s = (e.socials && Object.keys(e.socials).length) ? e.socials : (AGENCY_SOCIALS[id] || {});
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9999;display:flex;align-items:center;justify-content:center';
   overlay.innerHTML = `
