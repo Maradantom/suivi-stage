@@ -249,7 +249,7 @@
     <div class="stat-pill" data-filter="nc"><span class="num" id="cnt-nc">—</span>&nbsp;Non contacté</div>
     <div class="stat-pill" data-filter="em"><span class="num" id="cnt-em">—</span>&nbsp;Envoyé</div>
     <div class="stat-pill" data-filter="r1"><span class="num" id="cnt-r1">—</span>&nbsp;Relance 1</div>
-    <div class="stat-pill" data-filter="r2"><span class="num" id="cnt-r2">—</span>&nbsp;Relance 2</div>
+    <div class="stat-pill" data-filter="rf"><span class="num" id="cnt-rf">—</span>&nbsp;Refus</div>
     <div class="stat-pill" data-filter="rp"><span class="num" id="cnt-rp">—</span>&nbsp;Réponse</div>
     <div class="stat-pill" data-filter="en"><span class="num" id="cnt-en">—</span>&nbsp;Entretien</div>
     <div class="stat-pill" data-filter="ok"><span class="num" id="cnt-ok">—</span>&nbsp;Stage ✓</div>
@@ -1297,7 +1297,7 @@ function updateStats() {
     if (e.prio) counts.prio++;
   });
   document.getElementById('cnt-all').textContent = AGENCIES.filter(ag => !getEntry(ag.id)._hidden).length;
-  ['nc','em','r1','r2','rp','en','ok','prio'].forEach(k => {
+  ['nc','em','r1','rp','en','ok','rf','prio'].forEach(k => {
     const el = document.getElementById('cnt-'+k);
     if (el) el.textContent = counts[k] || 0;
   });
