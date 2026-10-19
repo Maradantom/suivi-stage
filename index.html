@@ -66,6 +66,8 @@
     tr:last-child td{border-bottom:none}
     tr:hover td{background:#fafafa}
     tr.overdue td{background:#fff5f5}
+    tr.refused td{background:#f8f8f8;opacity:.45;pointer-events:none}
+    tr.refused .status-sel{pointer-events:all;opacity:1}
     /* ZONE BADGES */
     .badge{font-size:.65rem;font-weight:700;padding:.18rem .45rem;border-radius:12px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
     .b-lyon{background:#dbeafe;color:#1d4ed8}
@@ -1023,6 +1025,7 @@ function renderTable() {
     const todayRel = isToday(e.relanceDate);
     const tr = document.createElement('tr');
     if (overdue) tr.classList.add('overdue');
+    if (e.status === 'rf') tr.classList.add('refused');
 
     // Colonnes séparées : adresse / téléphone / email (Firebase override > AGENCIES)
     const phone = e.phone  !== undefined ? e.phone  : ag.phone;
@@ -1088,7 +1091,9 @@ function changeStatus(id, sel) {
   const newStatus = sel.value;
   sel.className = `status-sel ${STATUSES[newStatus].cls}`;
   saveEntry(id, 'status', newStatus);
-  if (STATUSES[newStatus].days) {
+  if (newStatus === 'rf') {
+    saveEntry(id, 'relanceDate', '');
+  } else if (STATUSES[newStatus].days) {
     const e = getEntry(id);
     if (!e.relanceDate) {
       const base = e.contactDate || today();
